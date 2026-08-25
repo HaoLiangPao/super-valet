@@ -1,0 +1,29 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  index-is-current:
+    name: docs/README.md 索引是最新的
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 检查索引
+        run: python3 scripts/gen_docs_index.py --check
+
+  frontmatter-is-valid:
+    name: 每篇文档的 frontmatter 合法
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 校验 frontmatter
+        run: python3 scripts/check_frontmatter.py
