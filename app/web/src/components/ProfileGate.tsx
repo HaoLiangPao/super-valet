@@ -22,8 +22,17 @@ const EMOJI_CHOICES = ['🍚', '🍜', '🍣', '🥩', '🥟', '🍕', '🌮', '
  * Profile 门禁：没选人之前不渲染任何业务页面，
  * 避免 store 在「无活跃 Profile」状态下被页面调用。
  * 本轮只求功能完整，视觉留给保真 UI 那一轮。
+ *
+ * `onRequestLogin`（ADR-0006）：配了 Supabase 时由 AuthGate 传进来，
+ * 在选人页底部长出一个「用账号登录」入口。不传 = 纯本地模式，行为与之前一致。
  */
-export default function ProfileGate({ children }: { children: ReactNode }) {
+export default function ProfileGate({
+  children,
+  onRequestLogin,
+}: {
+  children: ReactNode;
+  onRequestLogin?: () => void;
+}) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -235,6 +244,20 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
       <p className="text-center text-xs text-muted">
         每个 Profile 的口味、记录、反馈完全隔离，互不影响。
       </p>
+
+      {onRequestLogin && (
+        <div
+          className="flex flex-col items-center gap-1 border-t pt-4"
+          style={{ borderColor: 'var(--color-divider)' }}
+        >
+          <button type="button" onClick={onRequestLogin} className="btn btn-ghost">
+            有账号？用邮箱登录 →
+          </button>
+          <span className="text-center text-[11.5px]" style={{ color: 'var(--color-neutral-600)' }}>
+            登录后数据存云端、换设备也跟着走；本机这些 Profile 会原样留着。
+          </span>
+        </div>
+      )}
     </div>
   );
 }

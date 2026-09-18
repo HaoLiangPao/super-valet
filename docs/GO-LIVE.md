@@ -35,6 +35,12 @@ Hobby 档；`*-projects.vercel.app` 长链接受 Vercel Authentication 保护返
   `app/web/.env.local`（已规整为 `SUPABASE_DB_URL` / `SUPABASE_DB_PASSWORD` /
   `SUPABASE_ACCESS_TOKEN`，文件不进仓库）。账号轮已解除全部阻塞。
   ⚠️ full access token 权限很大，只留在本机 env 文件里，不要贴进任何对话/工单。
+- [x] **账号轮已实现**（2026-09-18，ADR-0006）：邮箱密码登录（项目已开
+  `mailer_autoconfirm`，不依赖邮件送达）、`supabase/migrations/0001_init.sql`
+  已在项目上执行、五张表 RLS 全开并实测、`NEXT_PUBLIC_*` 两个值已配进 Vercel
+  三个环境。待创始人验收 + QA 复检后 commit 与部署。
+  - 试玩名单固定后记得收口公开注册：Management API `PATCH /v1/projects/<ref>/config/auth`
+    传 `{"disable_signup": true}`。
 
 ## 3. 可选
 

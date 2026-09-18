@@ -1,0 +1,242 @@
+import { personaSeedState } from '../profiles/personas';
+import type { StoreBackend } from '../store/backend';
+import { emptyState } from '../engine/types';
+import type { EngineState, FeedbackRecord, RollRecord } from '../engine/types';
+import type { CloudGateway } from './gateway';
+import {
+  changedRows,
+  feedbackToRow,
+  indexBy,
+  rollToRow,
+  rowToFeedback,
+  rowToRoll,
+  rowsToState,
+  stateToCategoryRows,
+  stateToRestaurantRows,
+} from './rows';
+import type { CategoryRow, RestaurantRow } from './rows';
+
+export interface CloudIdentity {
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+  emoji: string;
+  personaKey: string | null;
+  onboardedAt: string | null;
+}
+
+interface WriteOp {
+  label: string;
+  run: () => Promise<void>;
+  onFail?: () => void;
+}
+
+/** 失败重试队列的上限：再积压下去说明是账号/网络级故障，不如早点报错 */
+const MAX_RETRY_BACKLOG = 50;
+
+function clone<T>(value: T): T {
+  return structuredClone(value);
+}
+
+/**
+ * 云模式的存储后端（ADR-0006）。
+ *
+ * 契约要求 `engine/store.ts` 的 8 个函数保持同步签名，而 Supabase 是异步的，
+ * 所以这里走 write-through：
+ *   - 登录时一次性把该账号的全量数据拉进内存（`openCloudStore`）；
+ *   - 读 = 读内存快照（同步，返回副本，调用方随便 mutate）；
+ *   - 写 = 先改内存快照（同步生效，UI 立即正确），再进串行写队列落库。
+ *
+ * 队列串行是刻意的：rolls 必须先于 feedbacks 落库（DB 有外键），
+ * 并发 upsert 会把这个顺序打散。
+ */
+export class CloudStore implements StoreBackend {
+  private state: EngineState;
+  private rolls: RollRecord[];
+  private feedbacks: FeedbackRecord[];
+
+  /** 上一次成功推上去的行，用来做差分：整份 state 存进来，只推真正变了的行 */
+  private lastRestaurantRows: Map<string, RestaurantRow>;
+  private lastCategoryRows: Map<string, CategoryRow>;
+
+  private chain: Promise<void> = Promise.resolve();
+  private retryable: WriteOp[] = [];
+
+  identity: CloudIdentity;
+  lastError: string | null = null;
+
+  constructor(
+    private readonly gateway: CloudGateway,
+    identity: CloudIdentity,
+    snapshot: {
+      state: EngineState;
+      rolls: RollRecord[];
+      feedbacks: FeedbackRecord[];
+    },
+  ) {
+    this.identity = identity;
+    this.state = snapshot.state;
+    this.rolls = snapshot.rolls;
+    this.feedbacks = snapshot.feedbacks;
+    this.lastRestaurantRows = indexBy(stateToRestaurantRows(this.state), (r) => r.place_id);
+    this.lastCategoryRows = indexBy(stateToCategoryRows(this.state), (r) => r.category);
+  }
+
+  /* ---------------- StoreBackend ---------------- */
+
+  loadState(): EngineState {
+    return clone(this.state);
+  }
+
+  saveState(state: EngineState): void {
+    this.state = clone(state);
+
+    const restaurants = stateToRestaurantRows(this.state);
+    const categories = stateToCategoryRows(this.state);
+    const dirtyRestaurants = changedRows(this.lastRestaurantRows, restaurants, (r) => r.place_id);
+    const dirtyCategories = changedRows(this.lastCategoryRows, categories, (r) => r.category);
+    if (dirtyRestaurants.length === 0 && dirtyCategories.length === 0) return;
+
+    for (const row of dirtyRestaurants) this.lastRestaurantRows.set(row.place_id, row);
+    for (const row of dirtyCategories) this.lastCategoryRows.set(row.category, row);
+
+    if (dirtyRestaurants.length > 0) {
+      this.enqueue({
+        label: '单店后验',
+        run: () => this.gateway.upsertRestaurants(dirtyRestaurants),
+        // 没推上去就别记成「已同步」，让下一次 saveState 重新算成脏行
+        onFail: () => {
+          for (const row of dirtyRestaurants) this.lastRestaurantRows.delete(row.place_id);
+        },
+      });
+    }
+    if (dirtyCategories.length > 0) {
+      this.enqueue({
+        label: '类别后验',
+        run: () => this.gateway.upsertCategories(dirtyCategories),
+        onFail: () => {
+          for (const row of dirtyCategories) this.lastCategoryRows.delete(row.category);
+        },
+      });
+    }
+  }
+
+  loadRolls(): RollRecord[] {
+    return clone(this.rolls);
+  }
+
+  appendRoll(record: RollRecord): void {
+    const copy = clone(record);
+    this.rolls.push(copy);
+    this.enqueue({ label: '摇号记录', run: () => this.gateway.insertRoll(rollToRow(copy)) });
+  }
+
+  loadFeedbacks(): FeedbackRecord[] {
+    return clone(this.feedbacks);
+  }
+
+  appendFeedback(record: FeedbackRecord): void {
+    const copy = clone(record);
+    this.feedbacks.push(copy);
+    this.enqueue({ label: '反馈', run: () => this.gateway.upsertFeedback(feedbackToRow(copy)) });
+  }
+
+  exportIdentity(): unknown {
+    return {
+      mode: 'cloud',
+      userId: this.identity.userId,
+      email: this.identity.email,
+      name: this.identity.displayName,
+      emoji: this.identity.emoji,
+      personaKey: this.identity.personaKey,
+    };
+  }
+
+  /* ---------------- 云模式专有 ---------------- */
+
+  /** 首登选完 persona（或「从零开始」传 null）：种类别层先验 + 标记已引导 */
+  async completeOnboarding(personaKey: string | null, emoji: string): Promise<void> {
+    const seed = personaKey ? personaSeedState(personaKey) : null;
+    if (seed) this.saveState({ ...emptyState(), ...seed });
+
+    const onboardedAt = new Date().toISOString();
+    const displayName = this.identity.displayName
+      ?? (this.identity.email ? this.identity.email.split('@')[0] : null);
+    this.identity = { ...this.identity, personaKey, emoji, onboardedAt, displayName };
+    this.enqueue({
+      label: '账号档案',
+      run: () => this.gateway.updateProfile({
+        persona_key: personaKey,
+        emoji,
+        display_name: displayName,
+        onboarded_at: onboardedAt,
+      }),
+    });
+    await this.flush();
+  }
+
+  /** 等所有排队中的写落库（测试、以及「导出/离开页面前」用） */
+  flush(): Promise<void> {
+    this.enqueue({ label: 'flush', run: async () => {} });
+    return this.chain;
+  }
+
+  /* ---------------- 写队列 ---------------- */
+
+  private enqueue(op: WriteOp): void {
+    this.chain = this.chain.then(async () => {
+      // 先补跑上次失败的，保住 rolls → feedbacks 的先后次序
+      const pending = this.retryable.splice(0);
+      for (const p of pending) await this.attempt(p);
+      await this.attempt(op);
+    });
+  }
+
+  private async attempt(op: WriteOp): Promise<void> {
+    try {
+      await op.run();
+      return;
+    } catch {
+      // 一次立即重试：绝大多数失败是瞬时网络抖动
+    }
+    try {
+      await op.run();
+      return;
+    } catch (err) {
+      op.onFail?.();
+      this.lastError = `${op.label}同步失败：${err instanceof Error ? err.message : String(err)}`;
+      console.error('[supper-valet] 云端写入失败', op.label, err);
+      if (this.retryable.length < MAX_RETRY_BACKLOG) this.retryable.push(op);
+    }
+  }
+}
+
+/** 登录后调用：拉全量数据，装配出一个可以同步读写的 CloudStore */
+export async function openCloudStore(
+  gateway: CloudGateway,
+  userId: string,
+  email: string | null,
+): Promise<CloudStore> {
+  const [profile, restaurants, categories, rollRows, feedbackRows] = await Promise.all([
+    gateway.fetchProfile(),
+    gateway.fetchRestaurants(),
+    gateway.fetchCategories(),
+    gateway.fetchRolls(),
+    gateway.fetchFeedbacks(),
+  ]);
+
+  const identity: CloudIdentity = {
+    userId,
+    email: profile?.email ?? email,
+    displayName: profile?.display_name ?? null,
+    emoji: profile?.emoji ?? '🍚',
+    personaKey: profile?.persona_key ?? null,
+    onboardedAt: profile?.onboarded_at ?? null,
+  };
+
+  return new CloudStore(gateway, identity, {
+    state: rowsToState(restaurants, categories),
+    rolls: rollRows.map(rowToRoll),
+    feedbacks: feedbackRows.map(rowToFeedback),
+  });
+}

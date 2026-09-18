@@ -1,76 +1,48 @@
-import { getActiveProfile, getActiveProfileId, profileKey } from '../profiles/profiles';
-import type { DataSuffix } from '../profiles/profiles';
-import { emptyState } from './types';
+import { currentBackend } from '../store/backend';
 import type { EngineState, FeedbackRecord, RollRecord } from './types';
 
 /**
- * 全部数据按活跃 Profile 命名空间存放：`sv.<profileId>.<suffix>`（design/0004 §4）。
- * 没有活跃 Profile 时读返回空、写 no-op —— 正常流程有 ProfileGate 门禁，
- * 这里是防御：任何漏网的调用都不许污染别人的数据。
+ * 引擎与页面唯一的存储入口。
+ *
+ * 函数签名（全同步）是与上层的契约，不随后端变化：
+ * 游客模式落 localStorage 命名空间，登录后落 Supabase（ADR-0006）。
+ * 真正的实现见 `src/lib/store/backend.ts` 与 `src/lib/cloud/store.ts`。
  */
-function keyFor(suffix: DataSuffix): string | null {
-  const id = getActiveProfileId();
-  return id ? profileKey(id, suffix) : null;
-}
-
-function read<T>(suffix: DataSuffix, fallback: T): T {
-  const key = keyFor(suffix);
-  if (!key) return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function write(suffix: DataSuffix, value: unknown): void {
-  const key = keyFor(suffix);
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // 存不进去（隐私模式等）就当内存态跑
-  }
-}
 
 export function loadState(): EngineState {
-  return { ...emptyState(), ...read<Partial<EngineState>>('state.v1', {}) };
+  return currentBackend().loadState();
 }
 
 export function saveState(state: EngineState): void {
-  write('state.v1', state);
+  currentBackend().saveState(state);
 }
 
 export function loadRolls(): RollRecord[] {
-  return read<RollRecord[]>('rolls.v1', []);
+  return currentBackend().loadRolls();
 }
 
 export function appendRoll(record: RollRecord): void {
-  const rolls = loadRolls();
-  rolls.push(record);
-  write('rolls.v1', rolls);
+  currentBackend().appendRoll(record);
 }
 
 export function loadFeedbacks(): FeedbackRecord[] {
-  return read<FeedbackRecord[]>('feedbacks.v1', []);
+  return currentBackend().loadFeedbacks();
 }
 
 export function appendFeedback(record: FeedbackRecord): void {
-  const all = loadFeedbacks();
-  all.push(record);
-  write('feedbacks.v1', all);
+  currentBackend().appendFeedback(record);
 }
 
-/** 一键导出当前 Profile 的全部数据（design/0001 §6 的 rolls 快照是离线回放的资产） */
+/** 一键导出当前身份的全部数据（design/0001 §6 的 rolls 快照是离线回放的资产） */
 export function exportAll(): string {
+  const backend = currentBackend();
   return JSON.stringify(
     {
       exportedAt: new Date().toISOString(),
-      profile: getActiveProfile(),
-      state: loadState(),
-      rolls: loadRolls(),
-      feedbacks: loadFeedbacks(),
+      profile: backend.exportIdentity(),
+      state: backend.loadState(),
+      rolls: backend.loadRolls(),
+      feedbacks: backend.loadFeedbacks(),
     },
     null,
     2,

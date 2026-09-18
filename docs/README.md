@@ -26,6 +26,7 @@
 | 0003 | [技术栈：Next.js 15 + Supabase + Drizzle + Vercel（PWA 形态）](decisions/0003-tech-stack.md) | 📝 proposed | HaoLiangPao | 2026-09-17 |
 | 0004 | [V1 范围只做晚餐，推荐内核对餐次无感知](decisions/0004-dinner-first-meal-agnostic-core.md) | ✅ accepted | HaoLiangPao | 2026-09-17 |
 | 0005 | [两层 Bandit：菜系类别层进 schema，打分用软乘积](decisions/0005-two-layer-bandit-soft-product.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
+| 0006 | [试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留](decisions/0006-supabase-accounts-and-cloud-store.md) | 📝 proposed | claude-opus-5 | 2026-09-18 |
 
 ## Research & Notes
 
@@ -39,4 +40,4 @@
 
 ---
 
-共 12 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护
+共 13 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Caprasimo, Figtree } from "next/font/google";
 import "./globals.css";
+import AuthGate from "@/components/AuthGate";
 import BottomNav from "@/components/BottomNav";
-import ProfileGate from "@/components/ProfileGate";
 import TopBar from "@/components/TopBar";
 
 const caprasimo = Caprasimo({
@@ -28,10 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="zh-CN" className={`h-full ${caprasimo.variable} ${figtree.variable}`}>
       <body className="min-h-full antialiased" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
         <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pt-7 pb-24">
-          <ProfileGate>
+          <AuthGate>
             <TopBar />
             {children}
-          </ProfileGate>
+          </AuthGate>
         </div>
         <BottomNav />
       </body>
