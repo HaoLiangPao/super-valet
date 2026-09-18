@@ -32,3 +32,6 @@ pnpm-debug.log*
 # Local scratch
 tmp/
 scratch/
+
+# Claude Code local settings (per-machine permissions)
+.claude/settings.local.json
