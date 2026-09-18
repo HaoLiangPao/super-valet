@@ -4,29 +4,28 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { href: '/', icon: '🎲', label: '摇' },
-  { href: '/pool', icon: '📋', label: '池' },
-  { href: '/history', icon: '📊', label: '记录' },
+  { href: '/', glyph: '◎', label: '摇' },
+  { href: '/pool', glyph: '▤', label: '池' },
+  { href: '/history', glyph: '▦', label: '记录' },
 ] as const;
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 border-t border-brown/20 bg-cream/95 backdrop-blur">
-      <div className="mx-auto flex max-w-md">
+    <nav className="fixed inset-x-0 bottom-0 z-30">
+      <div className="tabbar mx-auto max-w-md">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-3 text-xs transition-colors ${
-                active ? 'text-brown-dark font-semibold' : 'text-brown/50'
-              }`}
+              className="tab-btn"
+              style={{ color: active ? 'var(--color-accent-700)' : 'var(--color-neutral-500)' }}
             >
-              <span className="text-xl leading-none">{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span className="tab-glyph">{tab.glyph}</span>
+              <span className="tab-label">{tab.label}</span>
             </Link>
           );
         })}

@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
+import { Caprasimo, Figtree } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import ProfileGate from "@/components/ProfileGate";
+import TopBar from "@/components/TopBar";
+
+const caprasimo = Caprasimo({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-caprasimo",
+});
+
+const figtree = Figtree({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-figtree",
+});
 
 export const metadata: Metadata = {
   title: "今天吃什么 · Supper Valet",
@@ -10,10 +25,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-CN" className="h-full">
-      <body className="min-h-full bg-cream text-brown-dark antialiased">
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-4 pt-6 pb-24">
-          <ProfileGate>{children}</ProfileGate>
+    <html lang="zh-CN" className={`h-full ${caprasimo.variable} ${figtree.variable}`}>
+      <body className="min-h-full antialiased" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pt-7 pb-24">
+          <ProfileGate>
+            <TopBar />
+            {children}
+          </ProfileGate>
         </div>
         <BottomNav />
       </body>

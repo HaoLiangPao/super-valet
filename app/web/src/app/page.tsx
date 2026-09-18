@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { swatchFor } from '@/components/cuisineSwatch';
 import { SEED_RESTAURANTS } from '@/data/seed-restaurants';
 import { CATEGORY_LABELS, categoryOf } from '@/lib/engine/cuisine';
 import { reasonLine, rollOnce } from '@/lib/engine/engine';
@@ -30,19 +31,21 @@ type Phase =
   | 'feedback'
   | 'locked'
   | 'idle'
+  | 'rolling'
   | 'result'
-  | 'skip'
   | 'downgrade'
   | 'empty';
 
-const SKIP_OPTIONS: { reason: SkipReason; label: string }[] = [
+/** 翻牌动效时长，对齐 globals.css 里 ctwFlip 的 1.25s */
+const REVEAL_MS = 1250;
+
+const SKIP_CHIPS: { reason: SkipReason; label: string }[] = [
   { reason: 'too_far', label: '太远了' },
   { reason: 'too_pricey', label: '太贵了' },
   { reason: 'just_ate', label: '刚吃过' },
   { reason: 'wrong_cuisine', label: '不想吃这个菜系' },
   { reason: 'closed', label: '关门了' },
   { reason: 'no_mood', label: '就是不想吃' },
-  { reason: 'other', label: '不说，直接换' },
 ];
 
 function findRestaurant(placeId: string): Restaurant | undefined {
@@ -60,15 +63,69 @@ function mapsUrlFor(name: string, address: string): string {
   )}`;
 }
 
-function RestaurantFacts({ r }: { r: Restaurant }) {
+/** 只在事件回调里读浏览器媒体状态，不在渲染体内调用 */
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined'
+    && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+
+function computeRoll(
+  currentState: EngineState,
+  exclude: Set<string>,
+): RollResult | null {
+  const today = epochDay();
+  const weekday = new Date().getDay();
+  return rollOnce(SEED_RESTAURANTS, currentState, DINNER, today, weekday, exclude);
+}
+
+function RestaurantFacts({ r, inverted = false }: { r: Restaurant; inverted?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brown">
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+      style={{ color: inverted ? 'inherit' : 'var(--color-neutral-700)', opacity: inverted ? 0.9 : 1 }}
+    >
       <span>
         ★ {r.rating.toFixed(1)}（{r.ratingCount}）
       </span>
       {r.priceLevel != null && <span>{'$'.repeat(r.priceLevel)}</span>}
       <span>{r.distanceKm} km</span>
     </div>
+  );
+}
+
+function ReasonSheet({
+  onPick,
+  onClose,
+}: {
+  onPick: (reason: SkipReason) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="sheet-backdrop" onClick={onClose} />
+      <div className="sheet-panel fx-sheet">
+        <div className="sheet-grabber" />
+        <div className="font-heading text-[22px] leading-[1.2]">哪儿不对？</div>
+        <p className="mt-1.5 mb-4 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
+          一次多余的点击，换六个干净的特征。不说也行，直接换。
+        </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {SKIP_CHIPS.map((opt) => (
+            <button key={opt.reason} type="button" onClick={() => onPick(opt.reason)} className="chip">
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => onPick('other')}
+          className="btn btn-secondary btn-block"
+          style={{ height: 46 }}
+        >
+          不说，直接换一个
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -89,6 +146,9 @@ export default function HomePage() {
   const [skipCount, setSkipCount] = useState(0);
   const [rollStartAt, setRollStartAt] = useState<number | null>(null);
   const [downgradeSnapshot, setDowngradeSnapshot] = useState<CandidateSnapshot[] | null>(null);
+  const [reasonSheetOpen, setReasonSheetOpen] = useState(false);
+
+  const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 挂载时依次判断：补问反馈 → 今日是否已锁定 → 待摇。
   // localStorage 只在浏览器里有，效果里用微任务延后 setState，
@@ -120,6 +180,11 @@ export default function HomePage() {
         setPhase('idle');
       }
     });
+  }, []);
+
+  // 卸载时清掉还没触发的翻牌计时器，避免对已卸载组件 setState
+  useEffect(() => () => {
+    if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
   }, []);
 
   function settleLockOrIdle() {
@@ -180,13 +245,13 @@ export default function HomePage() {
     setSkipCount(0);
     setRollCount(0);
     setRollStartAt(null);
+    setReasonSheetOpen(false);
   }
 
-  function performRoll(currentState: EngineState, exclude: Set<string>) {
+  /** 摇一次：立刻算出结果，但先进入 rolling 播翻牌动效，动效播完才把 phase 切到 result */
+  function beginRoll(currentState: EngineState, exclude: Set<string>) {
     const idx = rollCount;
-    const today = epochDay();
-    const weekday = new Date().getDay();
-    const result = rollOnce(SEED_RESTAURANTS, currentState, DINNER, today, weekday, exclude);
+    const result = computeRoll(currentState, exclude);
     setRollCount(idx + 1);
     setCurrentRollIndex(idx);
     setExcludeIds(exclude);
@@ -196,14 +261,15 @@ export default function HomePage() {
       return;
     }
     setCurrentCard(result);
-    setPhase('result');
+    setPhase('rolling');
+    if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
+    const delay = prefersReducedMotion() ? 0 : REVEAL_MS;
+    rollTimerRef.current = setTimeout(() => setPhase('result'), delay);
   }
 
   function performDowngrade(currentState: EngineState, exclude: Set<string>) {
     const idx = rollCount;
-    const today = epochDay();
-    const weekday = new Date().getDay();
-    const result = rollOnce(SEED_RESTAURANTS, currentState, DINNER, today, weekday, exclude);
+    const result = computeRoll(currentState, exclude);
     setRollCount(idx + 1);
     setCurrentRollIndex(idx);
     setExcludeIds(exclude);
@@ -218,11 +284,11 @@ export default function HomePage() {
   function handleStartRoll() {
     if (!state) return;
     setRollStartAt(Date.now());
-    performRoll(state, new Set());
+    beginRoll(state, new Set());
   }
 
-  function openSkipChips() {
-    setPhase('skip');
+  function openReasonSheet() {
+    setReasonSheetOpen(true);
   }
 
   function chooseSkipReason(reason: SkipReason) {
@@ -246,6 +312,8 @@ export default function HomePage() {
     saveState(next);
     setState(next);
 
+    setReasonSheetOpen(false);
+
     const nextSkipCount = skipCount + 1;
     setSkipCount(nextSkipCount);
     const nextExclude = new Set(excludeIds);
@@ -254,7 +322,7 @@ export default function HomePage() {
     if (nextSkipCount >= 3) {
       performDowngrade(next, nextExclude);
     } else {
-      performRoll(next, nextExclude);
+      beginRoll(next, nextExclude);
     }
   }
 
@@ -316,7 +384,7 @@ export default function HomePage() {
 
   if (phase === 'loading' || !state) {
     return (
-      <div className="flex flex-1 items-center justify-center text-brown/60">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
     );
   }
 
@@ -325,37 +393,50 @@ export default function HomePage() {
     const restaurant = findRestaurant(roll.restaurantId);
     const name = restaurant?.name ?? '那家店';
     return (
-      <div className="mt-10 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-md">
-        <p className="font-serif text-lg text-brown-dark">上次的 {name} 怎么样？</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => handleFeedback('good')}
-            className="rounded-2xl bg-brown-dark/10 py-3 text-brown-dark transition-colors active:bg-brown-dark/20"
-          >
-            👍 好吃
-          </button>
-          <button
-            type="button"
-            onClick={() => handleFeedback('ok')}
-            className="rounded-2xl bg-brown-dark/10 py-3 text-brown-dark transition-colors active:bg-brown-dark/20"
-          >
-            😐 一般
-          </button>
-          <button
-            type="button"
-            onClick={() => handleFeedback('bad')}
-            className="rounded-2xl bg-brown-dark/10 py-3 text-brown-dark transition-colors active:bg-brown-dark/20"
-          >
-            👎 不好吃
-          </button>
-          <button
-            type="button"
-            onClick={handleNoShow}
-            className="rounded-2xl bg-brown-dark/10 py-3 text-brown-dark transition-colors active:bg-brown-dark/20"
-          >
-            没去成
-          </button>
+      <div className="flex flex-1 flex-col justify-center">
+        <div
+          className="fx-rise flex flex-col gap-4 rounded-[24px] p-5"
+          style={{ background: 'var(--color-neutral-900)', color: 'var(--color-neutral-100)', boxShadow: 'var(--shadow-lg)' }}
+        >
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-[.12em] uppercase" style={{ opacity: 0.6 }}>
+            <span className="inline-block h-3 w-3 rounded-[4px]" style={{ background: 'var(--color-accent)' }} />
+            今天吃什么 · 补问
+          </div>
+          <p className="font-heading text-lg">上次的 {name} 怎么样？</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => handleFeedback('good')}
+              className="btn"
+              style={{ background: 'var(--color-accent)', color: 'var(--color-neutral-900)', height: 46 }}
+            >
+              👍 好吃
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFeedback('ok')}
+              className="btn"
+              style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
+            >
+              😐 一般
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFeedback('bad')}
+              className="btn"
+              style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
+            >
+              👎 不好吃
+            </button>
+            <button
+              type="button"
+              onClick={handleNoShow}
+              className="btn"
+              style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
+            >
+              没去成
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -365,31 +446,59 @@ export default function HomePage() {
     const restaurant = lockedRoll ? findRestaurant(lockedRoll.restaurantId) : undefined;
     if (!restaurant) {
       return (
-        <div className="flex flex-1 items-center justify-center text-brown/60">加载中…</div>
+        <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
       );
     }
     return (
-      <div className="mt-10 flex flex-col items-center gap-3 text-center">
-        <h1 className="font-serif text-3xl text-brown-dark">今晚就是它 · {restaurant.name}</h1>
-        <p className="text-sm text-brown-dark/80">{restaurant.address}</p>
+      <div className="flex flex-1 flex-col gap-4 pt-1 pb-3">
+        <div
+          className="fx-pop relative overflow-hidden rounded-[28px] p-6"
+          style={{ background: 'var(--color-accent-600)', color: 'var(--color-bg)', boxShadow: 'var(--shadow-md)' }}
+        >
+          <div
+            className="pointer-events-none absolute -top-10 -right-10 h-[150px] w-[150px] rounded-full"
+            style={{ background: 'rgba(245,234,216,.12)' }}
+          />
+          <div className="relative text-[11px] font-bold tracking-[.16em] uppercase" style={{ opacity: 0.85 }}>
+            今天就是它了 · Locked
+          </div>
+          <div className="relative mt-2 font-heading text-[28px] leading-[1.14]">{restaurant.name}</div>
+          <div className="relative mt-2 text-[13px]" style={{ opacity: 0.9 }}>{restaurant.address}</div>
+          <div className="relative mt-3">
+            <RestaurantFacts r={restaurant} inverted />
+          </div>
+        </div>
+
         {justAccepted && (
-          <p className="text-xs text-brown/60">
-            决策用了 {justAccepted.seconds} 秒，摇了 {justAccepted.rolls} 次
+          <p
+            className="fx-pop px-1 text-center text-[12.5px] leading-relaxed"
+            style={{ color: 'var(--color-neutral-600)', animationDelay: '70ms' }}
+          >
+            决策用了 <b>{justAccepted.seconds} 秒</b>，摇了 {justAccepted.rolls} 次。晚 8 点我会来问你好不好吃。
           </p>
         )}
+
         <a
           href={mapsUrlFor(restaurant.name, restaurant.address)}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 w-full rounded-3xl bg-brown-dark py-4 text-center font-medium text-cream shadow-lg transition-transform active:scale-95"
+          className="fx-pop btn btn-primary btn-block text-center"
+          style={{ height: 52, fontSize: 17, animationDelay: '130ms' }}
         >
           在 Google Maps 打开
         </a>
-        <p className="text-xs text-brown/60">晚点会问你好不好吃</p>
+
         <button
           type="button"
           onClick={handleReroll}
-          className="mt-6 text-sm text-brown/70 underline underline-offset-2"
+          className="fx-pop btn btn-block"
+          style={{
+            height: 46,
+            background: 'transparent',
+            border: '1px dashed var(--color-neutral-400)',
+            color: 'var(--color-neutral-700)',
+            animationDelay: '190ms',
+          }}
         >
           重新摇（今晚变卦了）
         </button>
@@ -399,13 +508,9 @@ export default function HomePage() {
 
   if (phase === 'empty') {
     return (
-      <div className="mt-16 flex flex-col items-center gap-4 text-center">
-        <p className="text-brown-dark">今晚没有开门的候选</p>
-        <button
-          type="button"
-          onClick={handleGiveUp}
-          className="text-sm text-brown/70 underline underline-offset-2"
-        >
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <p style={{ color: 'var(--color-text)' }}>今晚没有开门的候选</p>
+        <button type="button" onClick={handleGiveUp} className="btn btn-ghost">
           返回
         </button>
       </div>
@@ -414,44 +519,87 @@ export default function HomePage() {
 
   if (phase === 'idle') {
     return (
-      <div className="flex flex-1 flex-col justify-center gap-8">
-        <div className="relative mx-auto h-56 w-64">
-          <div className="absolute inset-0 rotate-[-8deg] rounded-3xl bg-brown/15" />
-          <div className="absolute inset-0 rotate-[6deg] rounded-3xl bg-gold/25" />
-          <div className="absolute inset-0 flex items-center justify-center rounded-3xl border border-brown-dark/10 bg-white shadow-md">
-            <span className="text-6xl">🎲</span>
-          </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-7 pb-6">
+        <div className="deck">
+          <div
+            className="deck-layer"
+            style={{
+              background: 'var(--color-accent-2-300)',
+              border: '1px solid var(--color-accent-2-400)',
+              transform: 'rotate(-7deg) translate(-8px, 8px)',
+            }}
+          />
+          <div
+            className="deck-layer"
+            style={{
+              background: 'var(--color-accent-300)',
+              border: '1px solid var(--color-accent-400)',
+              transform: 'rotate(4deg) translate(6px, 4px)',
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleStartRoll}
+            className="deck-layer"
+          >
+            {/* 摇晃只作用在装饰面上：按钮命中区域保持静止，指针/自动化才有稳定目标 */}
+            <span
+              className="fx-wobble deck-layer flex flex-col items-center justify-center gap-4 overflow-hidden"
+              style={{ background: 'var(--color-accent-600)', boxShadow: 'var(--shadow-lg)', color: 'var(--color-bg)' }}
+            >
+            <span
+              className="pointer-events-none absolute rounded-full"
+              style={{ width: 170, height: 170, border: '1.5px solid rgba(245,234,216,.28)' }}
+            />
+            <span
+              className="pointer-events-none absolute rounded-full"
+              style={{ width: 124, height: 124, border: '1.5px solid rgba(245,234,216,.34)' }}
+            />
+            <span
+              className="pointer-events-none absolute rounded-full"
+              style={{ width: 82, height: 82, background: 'rgba(245,234,216,.12)' }}
+            />
+            <span className="relative font-heading text-[36px] leading-none tracking-tight">摇一摇</span>
+            <span className="relative text-[11px] font-bold tracking-[.16em] uppercase" style={{ opacity: 0.8 }}>
+              Shake the deck
+            </span>
+            </span>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleStartRoll}
-          className="w-full rounded-3xl bg-brown-dark py-4 font-serif text-lg text-cream shadow-lg transition-transform active:scale-95"
-        >
-          🎲 摇一摇
-        </button>
+        <p className="max-w-[260px] text-center text-[13px] leading-relaxed" style={{ color: 'var(--color-neutral-700)' }}>
+          池子里 {SEED_RESTAURANTS.length} 家，按概率抽样，不取最大值 —— 所以每天不一样。
+        </p>
       </div>
     );
   }
 
-  if (phase === 'skip') {
-    if (!currentCard) return null;
+  if (phase === 'rolling') {
     return (
-      <div className="mt-6 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-md">
-        <p className="font-serif text-lg text-brown-dark">
-          为什么不想吃 {currentCard.pick.name}？
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {SKIP_OPTIONS.map((opt) => (
-            <button
-              key={opt.reason}
-              type="button"
-              onClick={() => chooseSkipReason(opt.reason)}
-              className="rounded-full border border-brown/30 px-4 py-2 text-sm text-brown-dark transition-colors active:bg-brown/10"
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 pb-6">
+        <div className="relative h-[300px] w-[230px]">
+          <div className="fx-flip absolute inset-0">
+            <div
+              className="absolute inset-0 flex items-center justify-center rounded-[24px] [backface-visibility:hidden]"
+              style={{ background: 'var(--color-accent-600)', boxShadow: 'var(--shadow-lg)' }}
             >
-              {opt.label}
-            </button>
-          ))}
+              <div className="h-28 w-28 rounded-full" style={{ border: '2px solid rgba(245,234,216,.4)' }} />
+            </div>
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-[24px] p-6 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]"
+              style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-divider)', boxShadow: 'var(--shadow-lg)' }}
+            >
+              {currentCard && (
+                <>
+                  <div className="font-heading text-[24px] leading-[1.15]">{currentCard.pick.name}</div>
+                  <div className="text-xs" style={{ color: 'var(--color-neutral-600)' }}>
+                    {categoryLabel(currentCard.pick)}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
+        <div className="text-xs tracking-wide" style={{ color: 'var(--color-neutral-600)' }}>翻牌…</div>
       </div>
     );
   }
@@ -461,12 +609,18 @@ export default function HomePage() {
       ? [...downgradeSnapshot].sort((a, b) => b.score - a.score).slice(0, 3)
       : [];
     return (
-      <div className="mt-6 flex flex-col gap-4">
-        <p className="text-center font-serif text-lg text-brown-dark">挑一家吧</p>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {top3.map((c) => {
+      <div className="flex flex-1 flex-col gap-4 pt-1 pb-3">
+        <div className="fx-pop">
+          <div className="font-heading text-[22px] leading-[1.2]">行，你自己挑</div>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
+            摇三次都不满意，说明今天我不懂你。三个候选，直接选。
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {top3.map((c, i) => {
             const restaurant = findRestaurant(c.placeId);
             if (!restaurant) return null;
+            const swatch = swatchFor(categoryOf(restaurant));
             return (
               <button
                 key={c.placeId}
@@ -477,14 +631,22 @@ export default function HomePage() {
                     : 0;
                   handleAcceptDowngrade(c, elapsed);
                 }}
-                className="flex w-[75%] shrink-0 flex-col gap-2 rounded-3xl bg-white p-5 text-left shadow-md transition-transform active:scale-95"
+                className="fx-pop flex flex-col items-start gap-2 rounded-[20px] p-4 text-left transition-transform active:scale-[.98]"
+                style={{
+                  background: 'var(--color-neutral-100)',
+                  border: '1px solid var(--color-divider)',
+                  boxShadow: 'var(--shadow-sm)',
+                  animationDelay: `${i * 90}ms`,
+                }}
               >
-                <span className="font-serif text-xl text-brown-dark">{restaurant.name}</span>
+                <div className="flex w-full items-baseline justify-between gap-3">
+                  <span className="font-heading text-[19px]">{restaurant.name}</span>
+                  <span className="tag" style={{ background: swatch.bg, color: swatch.ink }}>
+                    {categoryLabel(restaurant)}
+                  </span>
+                </div>
                 <RestaurantFacts r={restaurant} />
-                <span className="w-fit rounded-full bg-gold/20 px-3 py-1 text-xs text-brown-dark">
-                  {categoryLabel(restaurant)}
-                </span>
-                <span className="text-xs text-brown/70">{restaurant.reason}</span>
+                <span className="text-xs" style={{ color: 'var(--color-neutral-600)' }}>{restaurant.reason}</span>
               </button>
             );
           })}
@@ -492,7 +654,13 @@ export default function HomePage() {
         <button
           type="button"
           onClick={handleGiveUp}
-          className="text-center text-sm text-brown/70 underline underline-offset-2"
+          className="btn btn-block"
+          style={{
+            height: 46,
+            background: 'transparent',
+            border: '1px dashed var(--color-neutral-400)',
+            color: 'var(--color-neutral-700)',
+          }}
         >
           今天不吃了，算了
         </button>
@@ -503,31 +671,63 @@ export default function HomePage() {
   // phase === 'result'
   if (!currentCard) return null;
   const { pick } = currentCard;
+  const swatch = swatchFor(categoryOf(pick));
   return (
-    <div className="mt-6 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-md">
-      <h2 className="font-serif text-2xl text-brown-dark">{pick.name}</h2>
-      <RestaurantFacts r={pick} />
-      <span className="w-fit rounded-full bg-gold/20 px-3 py-1 text-xs text-brown-dark">
-        {categoryLabel(pick)}
-      </span>
-      <p className="text-sm text-brown-dark/80">{reasonLine(state, pick, epochDay())}</p>
-      <p className="text-xs text-brown/70">{pick.reason}</p>
-      <div className="mt-2 flex gap-3">
+    <div className="fx-pop flex flex-1 flex-col gap-4 pb-3">
+      <div
+        className="rounded-[28px] p-5"
+        style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-divider)', boxShadow: 'var(--shadow-md)' }}
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <span className="tag" style={{ background: swatch.bg, color: swatch.ink }}>
+            {categoryLabel(pick)}
+          </span>
+          <span className="text-[11px] font-semibold" style={{ color: 'var(--color-neutral-600)' }}>
+            第 {currentRollIndex + 1} 摇
+          </span>
+        </div>
+        <div className="font-heading text-[28px] leading-[1.12]">{pick.name}</div>
+        <div className="mt-1 mb-3 text-[12.5px]" style={{ color: 'var(--color-neutral-600)' }}>{pick.address}</div>
+        <div
+          className="flex flex-wrap gap-x-3 gap-y-1 border-b pb-3 text-[12.5px] font-semibold"
+          style={{ borderColor: 'var(--color-divider)' }}
+        >
+          <RestaurantFacts r={pick} />
+        </div>
+        <p className="fx-drop pt-3 text-[13px] leading-relaxed" style={{ color: 'var(--color-neutral-800)' }}>
+          {reasonLine(state, pick, epochDay())}
+        </p>
+      </div>
+
+      <div
+        className="fx-drop rounded-[16px] p-4 text-[13px] leading-relaxed"
+        style={{ background: 'var(--color-accent-2-200)', color: 'var(--color-accent-2-800)' }}
+      >
+        {pick.reason}
+      </div>
+
+      <div className="mt-1 flex gap-2.5">
         <button
           type="button"
           onClick={handleAccept}
-          className="flex-1 rounded-2xl bg-brown-dark py-3 font-medium text-cream transition-transform active:scale-95"
+          className="btn btn-primary"
+          style={{ flex: 1.4, height: 52, fontSize: 17 }}
         >
           就它了
         </button>
         <button
           type="button"
-          onClick={openSkipChips}
-          className="flex-1 rounded-2xl border border-brown-dark/30 py-3 font-medium text-brown-dark transition-colors active:bg-brown-dark/10"
+          onClick={openReasonSheet}
+          className="btn btn-secondary"
+          style={{ flex: 1, height: 52, fontSize: 16 }}
         >
           换一个
         </button>
       </div>
+
+      {reasonSheetOpen && (
+        <ReasonSheet onPick={chooseSkipReason} onClose={() => setReasonSheetOpen(false)} />
+      )}
     </div>
   );
 }

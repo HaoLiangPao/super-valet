@@ -1,19 +1,401 @@
 @import "tailwindcss";
 
-@theme {
-  --color-cream: #f5ead8;
-  --color-brown-dark: #5c3a1e;
-  --color-brown: #8c5a32;
-  --color-gold: #c9a14a;
-  --font-serif: "Songti SC", "Noto Serif SC", "STSong", ui-serif, Georgia, serif;
+/* ══════════════════════════════════════════════════════════════════════
+   Organic — design tokens, ported verbatim (values) from the design
+   reference. Font families are wired to next/font variables set on
+   <html> in layout.tsx instead of raw @font-face blob URLs; Chinese
+   glyphs fall back to the OS's own CJK sans since neither Caprasimo nor
+   Figtree ships Chinese coverage — no extra font dependency needed.
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  --color-bg: #f5ead8;
+  --color-surface: #ebddc5;
+  --color-text: #201e1d;
+  --color-accent: #c67139;
+  --color-accent-2: #7a8a5e;
+  --color-divider: color-mix(in srgb, #201e1d 16%, transparent);
+
+  --color-neutral-100: #f9f4ed;
+  --color-neutral-200: #eee7db;
+  --color-neutral-300: #dcd3c4;
+  --color-neutral-400: #c0b6a5;
+  --color-neutral-500: #a19786;
+  --color-neutral-600: #82796a;
+  --color-neutral-700: #645c50;
+  --color-neutral-800: #474238;
+  --color-neutral-900: #2e2b25;
+
+  --color-accent-100: #fff2eb;
+  --color-accent-200: #ffe1d0;
+  --color-accent-300: #ffc6a5;
+  --color-accent-400: #f6a06b;
+  --color-accent-500: #d67f48;
+  --color-accent-600: #b2622d;
+  --color-accent-700: #8c491a;
+  --color-accent-800: #643312;
+  --color-accent-900: #402310;
+
+  --color-accent-2-100: #f0fae1;
+  --color-accent-2-200: #e1eecc;
+  --color-accent-2-300: #ccdbb2;
+  --color-accent-2-400: #aebf92;
+  --color-accent-2-500: #8fa073;
+  --color-accent-2-600: #728157;
+  --color-accent-2-700: #56633f;
+  --color-accent-2-800: #3d472b;
+  --color-accent-2-900: #272e1b;
+
+  --font-heading: var(--font-caprasimo, "Caprasimo"), "PingFang SC", "Heiti SC",
+    "Microsoft YaHei", system-ui, sans-serif;
+  --font-heading-weight: 400;
+  --font-body: var(--font-figtree, "Figtree"), "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+
+  --space-1: 4.4px;
+  --space-2: 8.8px;
+  --space-3: 13.2px;
+  --space-4: 17.6px;
+  --space-6: 26.4px;
+  --space-8: 35.2px;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2e2b25 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
 }
 
 html {
-  background: var(--color-cream);
+  background: var(--color-bg);
 }
 
 body {
-  background: var(--color-cream);
-  color: var(--color-brown-dark);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+}
+
+.text-muted {
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: 999px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-600);
+}
+.btn-primary:active:not(:disabled) {
+  background: var(--color-accent-700);
+}
+.btn-secondary {
+  border-color: var(--color-divider);
+  background: var(--color-neutral-200);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+.btn-secondary:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.btn-ghost {
+  color: var(--color-accent);
+  padding-inline: var(--space-1);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.btn-dashed {
+  border: 1px dashed var(--color-neutral-400);
+  color: var(--color-neutral-700);
+  background: transparent;
+}
+.btn-block {
+  width: 100%;
+}
+
+/* — forms — */
+.field > label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
+  caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+}
+.input:hover {
+  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.input:focus-visible {
+  border-color: var(--color-accent);
+  outline-offset: 0;
+}
+select.input {
+  border-radius: var(--radius-md);
+}
+
+/* — cards — */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: calc(var(--radius-lg) * 1.15);
+  background: var(--color-surface);
+}
+.elev-sm {
+  box-shadow: var(--shadow-sm);
+}
+.elev-md {
+  box-shadow: var(--shadow-md);
+}
+.elev-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* — tags / chips — */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 11px;
+  border-radius: 999px;
+}
+.tag-accent {
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+}
+.tag-accent-2 {
+  background: var(--color-accent-2-100);
+  color: var(--color-accent-2-800);
+}
+.tag-neutral {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-800);
+}
+.tag-outline {
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  background: transparent;
+}
+
+/* — chips used by the skip-reason sheet — */
+.chip {
+  border-radius: 999px;
+  border: 1px solid var(--color-accent-400);
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  font-size: 13.5px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.chip:hover {
+  background: var(--color-accent-200);
+}
+.chip:active {
+  transform: scale(0.97);
+}
+
+/* — bottom tab bar — */
+.tabbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  border-top: 1px solid var(--color-divider);
+  background: color-mix(in srgb, var(--color-neutral-100) 96%, transparent);
+  backdrop-filter: blur(8px);
+}
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 54px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+}
+.tab-btn .tab-glyph {
+  font-size: 19px;
+  line-height: 1;
+}
+.tab-btn .tab-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-body);
+}
+
+/* — bottom-sheet overlay (reason collection, etc.) — */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: color-mix(in srgb, var(--color-neutral-900) 42%, transparent);
+}
+.sheet-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 91;
+  background: var(--color-bg);
+  border-radius: 28px 28px 0 0;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 20px 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  box-shadow: var(--shadow-lg);
+}
+.sheet-grabber {
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-neutral-400);
+  margin: 0 auto 16px;
+}
+
+/* — idle deck — */
+.deck {
+  position: relative;
+  width: 230px;
+  height: 300px;
+}
+.deck-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   fx — motion system. Keyframes and timing copied verbatim from the
+   design reference (readme: "翻牌动效是情绪价值所在") — do not retune
+   without checking against the source template.
+   ══════════════════════════════════════════════════════════════════ */
+@keyframes ctwFlip {
+  0% { transform: perspective(1100px) rotateY(0deg) scale(.96); }
+  70% { transform: perspective(1100px) rotateY(1000deg) scale(1.04); }
+  100% { transform: perspective(1100px) rotateY(1260deg) scale(1); }
+}
+@keyframes ctwSlot {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(var(--ctw-shift, -600px)); }
+}
+@keyframes ctwFly {
+  0% { transform: translate(-150%, 40px) rotate(-14deg); opacity: 0; }
+  25% { opacity: 1; }
+  55% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  80% { transform: translate(150%, -30px) rotate(12deg); opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes ctwDrop {
+  0% { transform: translateY(-140px) scale(.9) rotate(-6deg); opacity: 0; }
+  70% { transform: translateY(6px) scale(1.02) rotate(1deg); opacity: 1; }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+@keyframes ctwBlur {
+  0% { filter: blur(22px); opacity: 0; transform: scale(1.35); }
+  60% { filter: blur(6px); opacity: 1; }
+  100% { filter: blur(0); opacity: 1; transform: scale(1); }
+}
+@keyframes ctwPop {
+  0% { transform: translateY(14px) scale(.94); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes ctwWobble {
+  0%, 100% { transform: rotate(-2.2deg); }
+  50% { transform: rotate(2.2deg); }
+}
+@keyframes ctwRise {
+  0% { transform: translateY(-120%); }
+  100% { transform: translateY(0); }
+}
+@keyframes ctwSheet {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.fx-flip { animation: ctwFlip 1.25s cubic-bezier(.16,.9,.2,1) forwards; transform-style: preserve-3d; }
+.fx-slotstrip { animation: ctwSlot 1.55s cubic-bezier(.1,.85,.12,1) forwards; }
+.fx-flycard { animation: ctwFly 1.1s ease-in-out forwards; }
+.fx-drop { animation: ctwDrop .7s cubic-bezier(.2,1.5,.4,1) .75s forwards; opacity: 0; }
+.fx-blur { animation: ctwBlur 1.05s cubic-bezier(.2,.9,.2,1) forwards; }
+.fx-pop { animation: ctwPop .42s cubic-bezier(.2,1.3,.3,1) both; }
+.fx-wobble { animation: ctwWobble 3.4s ease-in-out infinite; }
+.fx-rise { animation: ctwRise .5s cubic-bezier(.2,1.2,.3,1) both; }
+.fx-sheet { animation: ctwSheet .34s cubic-bezier(.2,.9,.2,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-flip,
+  .fx-slotstrip,
+  .fx-flycard,
+  .fx-drop,
+  .fx-blur,
+  .fx-pop,
+  .fx-wobble,
+  .fx-rise,
+  .fx-sheet {
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
 }

@@ -90,7 +90,9 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
   }
 
   if (!ready) {
-    return <div className="flex flex-1 items-center justify-center text-brown/60">加载中…</div>;
+    return (
+      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+    );
   }
 
   if (activeId) {
@@ -106,36 +108,42 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col gap-6 pt-6">
       <div className="flex items-baseline justify-between">
-        <h1 className="font-serif text-2xl text-brown-dark">今晚谁在吃？</h1>
+        <h1 className="font-heading text-[28px] leading-tight tracking-tight">今晚谁在吃？</h1>
         {profiles.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setManaging((v) => !v)}
-            className="text-sm text-brown/70 underline underline-offset-2"
-          >
+          <button type="button" onClick={() => setManaging((v) => !v)} className="btn btn-ghost">
             {managing ? '完成' : '管理'}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {profiles.map((p) => (
-          <div key={p.id} className="flex flex-col items-center gap-2">
+        {profiles.map((p, i) => (
+          <div
+            key={p.id}
+            className="fx-pop flex flex-col items-center gap-2"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
             <button
               type="button"
               onClick={() => enter(p.id)}
-              className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-3xl border border-brown-dark/10 bg-white shadow-md transition-transform active:scale-95"
+              className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[28px] transition-transform active:scale-95"
+              style={{
+                background: 'var(--color-neutral-100)',
+                border: '1px solid var(--color-divider)',
+                boxShadow: 'var(--shadow-md)',
+              }}
             >
               <span className="text-5xl" aria-hidden="true">
                 {p.emoji}
               </span>
-              <span className="font-serif text-lg text-brown-dark">{p.name}</span>
+              <span className="font-heading text-lg">{p.name}</span>
             </button>
             {managing && (
               <button
                 type="button"
                 onClick={() => handleDelete(p)}
-                className="text-xs text-brown/70 underline underline-offset-2"
+                className="text-xs underline underline-offset-2"
+                style={{ color: 'var(--color-accent-700)' }}
               >
                 删除
               </button>
@@ -147,7 +155,8 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-brown/40 text-brown/70 transition-transform active:scale-95"
+            className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[28px] border border-dashed transition-transform active:scale-95"
+            style={{ borderColor: 'var(--color-neutral-400)', color: 'var(--color-neutral-600)' }}
           >
             <span className="text-4xl" aria-hidden="true">
               ＋
@@ -158,23 +167,20 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
       </div>
 
       {creating && (
-        <form
-          onSubmit={handleCreate}
-          className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-md"
-        >
-          <label className="flex flex-col gap-1 text-sm text-brown-dark">
-            名字
+        <form onSubmit={handleCreate} className="fx-pop card elev-md flex flex-col gap-4">
+          <label className="field flex flex-col gap-1">
+            <span>名字</span>
             <input
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               maxLength={12}
               placeholder="比如：老张"
-              className="rounded-2xl border border-brown/20 px-3 py-2 text-base text-brown-dark outline-none focus:border-brown"
+              className="input"
             />
           </label>
 
-          <div className="flex flex-col gap-2 text-sm text-brown-dark">
-            头像
+          <div className="field flex flex-col gap-2">
+            <span>头像</span>
             <div className="flex flex-wrap gap-2">
               {EMOJI_CHOICES.map((e) => (
                 <button
@@ -182,9 +188,11 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
                   type="button"
                   onClick={() => setDraftEmoji(e)}
                   aria-pressed={draftEmoji === e}
-                  className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-2xl transition-colors ${
-                    draftEmoji === e ? 'border-brown-dark bg-gold/25' : 'border-brown/20'
-                  }`}
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border text-2xl transition-colors"
+                  style={{
+                    borderColor: draftEmoji === e ? 'var(--color-accent)' : 'var(--color-divider)',
+                    background: draftEmoji === e ? 'var(--color-accent-100)' : 'transparent',
+                  }}
                 >
                   {e}
                 </button>
@@ -192,12 +200,12 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <label className="flex flex-col gap-1 text-sm text-brown-dark">
-            口味模板（可选）
+          <label className="field flex flex-col gap-1">
+            <span>口味模板（可选）</span>
             <select
               value={draftPersona}
               onChange={(e) => pickTemplate(e.target.value)}
-              className="rounded-2xl border border-brown/20 px-3 py-2 text-base text-brown-dark outline-none focus:border-brown"
+              className="input"
             >
               <option value="">不预设，从零开始学</option>
               {PERSONA_TEMPLATES.map((t) => (
@@ -209,16 +217,14 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
           </label>
 
           <div className="flex gap-3">
-            <button
-              type="submit"
-              className="flex-1 rounded-2xl bg-brown-dark py-3 font-medium text-cream transition-transform active:scale-95"
-            >
+            <button type="submit" className="btn btn-primary btn-block" style={{ height: 48 }}>
               创建
             </button>
             <button
               type="button"
               onClick={() => setCreating(false)}
-              className="flex-1 rounded-2xl border border-brown-dark/30 py-3 font-medium text-brown-dark transition-colors active:bg-brown-dark/10"
+              className="btn btn-secondary btn-block"
+              style={{ height: 48 }}
             >
               取消
             </button>
@@ -226,7 +232,7 @@ export default function ProfileGate({ children }: { children: ReactNode }) {
         </form>
       )}
 
-      <p className="text-center text-xs text-brown/50">
+      <p className="text-center text-xs text-muted">
         每个 Profile 的口味、记录、反馈完全隔离，互不影响。
       </p>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { swatchFor } from '@/components/cuisineSwatch';
 import { SEED_RESTAURANTS } from '@/data/seed-restaurants';
 import { CATEGORY_LABELS, categoryOf } from '@/lib/engine/cuisine';
 import { eligible } from '@/lib/engine/engine';
@@ -9,6 +10,20 @@ import { freshness } from '@/lib/engine/scoring';
 import { loadState, saveState } from '@/lib/engine/store';
 import { DINNER, epochDay } from '@/lib/engine/types';
 import type { EngineState } from '@/lib/engine/types';
+
+function StatTile({ value, label }: { value: number; label: string }) {
+  return (
+    <div
+      className="flex-1 rounded-[16px] p-3"
+      style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-divider)' }}
+    >
+      <div className="font-heading text-2xl">{value}</div>
+      <div className="mt-1 text-[11px] leading-tight" style={{ color: 'var(--color-neutral-600)' }}>
+        {label}
+      </div>
+    </div>
+  );
+}
 
 export default function PoolPage() {
   const [state, setState] = useState<EngineState | null>(null);
@@ -21,7 +36,7 @@ export default function PoolPage() {
 
   if (!state) {
     return (
-      <div className="flex flex-1 items-center justify-center text-brown/60">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
     );
   }
 
@@ -29,6 +44,13 @@ export default function PoolPage() {
   const weekday = new Date().getDay();
   const eligibleToday = eligible(SEED_RESTAURANTS, state, DINNER, weekday);
   const cuisineCount = new Set(SEED_RESTAURANTS.map((r) => categoryOf(r))).size;
+  const avgDays = Math.round(
+    SEED_RESTAURANTS.reduce((sum, r) => {
+      const last = state.lastEatenDay[r.placeId];
+      const d = last === undefined ? 40 : Math.min(today - last, 40);
+      return sum + d;
+    }, 0) / SEED_RESTAURANTS.length,
+  );
 
   function togglePause(placeId: string) {
     if (!state) return;
@@ -39,47 +61,81 @@ export default function PoolPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="font-serif text-2xl text-brown-dark">店铺池</h1>
-      <div className="flex justify-between rounded-2xl bg-white px-4 py-3 text-sm text-brown-dark/80 shadow-sm">
-        <span>{SEED_RESTAURANTS.length} 家在池子里</span>
-        <span>{cuisineCount} 种菜系</span>
-        <span>今晚可选 {eligibleToday.length} 家</span>
+    <div className="flex flex-1 flex-col gap-3 pb-3">
+      <div className="flex gap-2">
+        <StatTile value={SEED_RESTAURANTS.length} label="家在池子里" />
+        <StatTile value={avgDays} label="天 · 平均冷却" />
+        <StatTile value={cuisineCount} label="种菜系" />
       </div>
-      <div className="flex flex-col gap-3">
-        {SEED_RESTAURANTS.map((r) => {
+
+      <button
+        type="button"
+        disabled
+        title="下个版本接 Google Places API"
+        className="btn btn-block"
+        style={{
+          height: 46,
+          border: '1px dashed var(--color-accent-400)',
+          color: 'var(--color-accent-700)',
+          background: 'var(--color-accent-100)',
+        }}
+      >
+        ＋ 搜 Google Places 添加
+      </button>
+
+      <div className="flex flex-col gap-2">
+        {SEED_RESTAURANTS.map((r, i) => {
           const f = freshness(today, state.lastEatenDay[r.placeId]);
           const paused = !!state.paused[r.placeId];
+          const swatch = swatchFor(categoryOf(r));
+          const last = state.lastEatenDay[r.placeId];
+          const daysLabel = last === undefined ? '没吃过' : `${today - last} 天前`;
           return (
-            <div key={r.placeId} className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-serif text-lg text-brown-dark">{r.name}</p>
-                  <p className="text-xs text-brown/70">
-                    {CATEGORY_LABELS[categoryOf(r)] ?? categoryOf(r)} · {r.distanceKm} km
-                  </p>
+            // 外层只管入场动效（fx-pop 自己动 opacity 0→1，且 fill-mode 在动画结束后
+            // 仍然「拿着」这个属性），暂停时的常驻半透明必须放在不参与动画的内层元素上，
+            // 否则内联 opacity 会被动画结束态的 opacity:1 盖掉。
+            <div key={r.placeId} className="fx-pop" style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
+              <div
+                className="flex flex-col gap-2 rounded-[16px] p-3.5"
+                style={{
+                  background: 'var(--color-neutral-100)',
+                  border: '1px solid var(--color-divider)',
+                  opacity: paused ? 0.55 : 1,
+                }}
+              >
+                <div className="flex items-baseline gap-2.5">
+                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: swatch.bg }} />
+                  <span className="font-heading flex-1 truncate text-[16px]">{r.name}</span>
+                  <span className="flex-none text-[11px] font-bold" style={{ color: 'var(--color-neutral-600)' }}>
+                    {daysLabel}
+                  </span>
                 </div>
-                <label className="flex shrink-0 items-center gap-1 text-xs text-brown/70">
-                  <input
-                    type="checkbox"
-                    checked={paused}
-                    onChange={() => togglePause(r.placeId)}
-                  />
+                <div className="flex items-center gap-2.5">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: 'var(--color-neutral-300)' }}>
+                    <div
+                      className="h-full rounded-full transition-[width]"
+                      style={{ background: swatch.bg, width: `${Math.round(f * 100)}%` }}
+                    />
+                  </div>
+                  <span className="flex-none text-[11px]" style={{ color: 'var(--color-neutral-600)' }}>
+                    {CATEGORY_LABELS[categoryOf(r)] ?? categoryOf(r)} · {r.distanceKm}km
+                  </span>
+                </div>
+                <label
+                  className="flex items-center gap-1.5 self-end text-[11px]"
+                  style={{ color: 'var(--color-neutral-600)' }}
+                >
+                  <input type="checkbox" checked={paused} onChange={() => togglePause(r.placeId)} />
                   下次再说
                 </label>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-brown/10">
-                <div
-                  className="h-full bg-gold transition-all"
-                  style={{ width: `${Math.round(f * 100)}%` }}
-                />
               </div>
             </div>
           );
         })}
       </div>
-      <p className="mt-2 text-center text-xs text-brown/50">
-        进度条 = 新鲜度 1−e^(−d/τ)，满格代表该吃了
+
+      <p className="px-1 text-center text-[11.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
+        进度条 = 新鲜度 1−e^(−d/τ)，满格代表该吃了。今晚可选 {eligibleToday.length} 家。
       </p>
     </div>
   );

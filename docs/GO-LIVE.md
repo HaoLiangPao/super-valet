@@ -4,8 +4,9 @@
 
 ## 1. 必须 —— 本轮上线（总花费 $0）
 
-- [ ] **Vercel 账号**（Hobby 免费档，够用）：https://vercel.com/signup 用 GitHub 登录即可。
-- [ ] **给我部署凭证**，二选一：
+- [x] **Vercel 账号**（Hobby 免费档，够用）：https://vercel.com/signup 用 GitHub 登录即可。
+      ✅ 2026-09-18 已办，`vercel whoami` = haoliangpao。
+- [x] **给我部署凭证**，二选一：（已用方式 A `npx vercel login`）
   - **A（推荐，最安全）**：在这台机器上跑一次
     ```bash
     cd app/web && npx vercel login
@@ -22,15 +23,16 @@
 
 ## 2. 下一轮 —— 真实账号 + 中央数据收集（总花费 $0）
 
-- [ ] **Supabase 项目**（Free 档）：https://supabase.com → New project（区域选
-  us-east 即可）。建好后把三样东西写进 `app/web/.env.local`（同样不进仓库）：
-  ```
-  NEXT_PUBLIC_SUPABASE_URL=...        # Project Settings → API → Project URL
-  NEXT_PUBLIC_SUPABASE_ANON_KEY=...   # 同页 anon public key
-  SUPABASE_SERVICE_ROLE_KEY=...       # 同页 service_role（保密）
-  ```
-  这一步做完，跨设备登录、同一账号多端同步、以及「我能直接看到全部试玩
-  数据」才成立。数据库表结构已设计好（design/0001 §6），到时我来迁移。
+- [x] **Supabase 项目**：✅ 2026-09-18 已建（fgulhrxeskssrjigrxai），
+  Project URL + publishable key 已入 `app/web/.env.local`。
+- [ ] **还差两样（二选一即可开工账号轮）**：
+  - **推荐**：什么都不用给我 —— 到时我把建表 SQL 写好放进仓库
+    （`supabase/migrations/`），你在 Supabase Dashboard → SQL Editor
+    里粘贴运行一次即可，数据库密码不经过任何对话。
+  - 或者：把数据库密码填进 `app/web/.env.local` 的 `SUPABASE_DB_URL`
+    （文件不进仓库），我可以直接跑迁移。
+  另：`SUPABASE_SECRET_KEY`（Dashboard → API Keys → secret）目前**不需要**，
+  等做服务端任务（定时推送等）再说。
 
 ## 3. 可选
 
