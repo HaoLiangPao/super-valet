@@ -2,6 +2,12 @@
 
 > 给 Hao：按顺序办，办完哪项在方框里打勾。金额都按最省的算。
 
+## 🟢 已上线（2026-09-18）
+
+**生产地址：https://supper-valet.vercel.app** （Vercel 项目 `supper-valet`，
+Hobby 档；`*-projects.vercel.app` 长链接受 Vercel Authentication 保护返回 302
+属正常，对外分享主域即可。）
+
 ## 1. 必须 —— 本轮上线（总花费 $0）
 
 - [x] **Vercel 账号**（Hobby 免费档，够用）：https://vercel.com/signup 用 GitHub 登录即可。
@@ -25,14 +31,10 @@
 
 - [x] **Supabase 项目**：✅ 2026-09-18 已建（fgulhrxeskssrjigrxai），
   Project URL + publishable key 已入 `app/web/.env.local`。
-- [ ] **还差两样（二选一即可开工账号轮）**：
-  - **推荐**：什么都不用给我 —— 到时我把建表 SQL 写好放进仓库
-    （`supabase/migrations/`），你在 Supabase Dashboard → SQL Editor
-    里粘贴运行一次即可，数据库密码不经过任何对话。
-  - 或者：把数据库密码填进 `app/web/.env.local` 的 `SUPABASE_DB_URL`
-    （文件不进仓库），我可以直接跑迁移。
-  另：`SUPABASE_SECRET_KEY`（Dashboard → API Keys → secret）目前**不需要**，
-  等做服务端任务（定时推送等）再说。
+- [x] **数据库密码 + full access token**：✅ 2026-09-18 Hao 已填入
+  `app/web/.env.local`（已规整为 `SUPABASE_DB_URL` / `SUPABASE_DB_PASSWORD` /
+  `SUPABASE_ACCESS_TOKEN`，文件不进仓库）。账号轮已解除全部阻塞。
+  ⚠️ full access token 权限很大，只留在本机 env 文件里，不要贴进任何对话/工单。
 
 ## 3. 可选
 
