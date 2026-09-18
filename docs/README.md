@@ -37,7 +37,8 @@
 | 0001 | [Fable 对产品企划与菜系/距离规格的设计评审](research/0001-fable-design-review.md) | 👀 review | claude-fable-5 | 2026-09-17 |
 | 0002 | [sim.py 180 天模拟报告：算法路线、回收率与范围问题的数据裁决](research/0002-sim-180d-report.md) | 👀 review | claude-fable-5 | 2026-09-17 |
 | 0003 | [种子轮第一轮收尾报告：P0 Web App 从零到可用](research/0003-p0-build-report.md) | 👀 review | claude-fable-5 | 2026-09-18 |
+| 0004 | [第二、三轮收尾报告：保真 UI、多 Profile、真实账号上线](research/0004-round2-3-report.md) | 👀 review | claude-fable-5 | 2026-09-18 |
 
 ---
 
-共 13 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护
+共 14 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护
