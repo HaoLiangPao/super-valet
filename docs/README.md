@@ -13,6 +13,7 @@
 | 0001 | [「今天吃什么」产品企划书 v1.0](design/0001-product-plan.md) | 📝 draft | HaoLiangPao | 2026-09-17 |
 | 0002 | [GTA 菜系分类体系与距离模块规格 v1](design/0002-cuisine-taxonomy-and-distance.md) | 📝 draft | HaoLiangPao | 2026-09-17 |
 | 0003 | [P0 Web App：Next.js 脚手架 + 两层 Bandit 引擎 + 牌堆 UI（本地优先）](design/0003-p0-web-app.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
+| 0004 | [第二轮：设计保真 UI（Organic + 动效）+ 多 Profile 隔离 + Vercel 就绪](design/0004-fidelity-ui-and-profiles.md) | ✅ accepted | claude-fable-5 | 2026-09-18 |
 
 ## Architecture Decisions (ADR)
 
@@ -38,4 +39,4 @@
 
 ---
 
-共 11 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护
+共 12 篇文档 · 索引生成于 2026-09-18 · 由 `scripts/gen_docs_index.py` 维护
