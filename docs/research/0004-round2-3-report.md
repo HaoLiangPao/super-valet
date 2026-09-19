@@ -32,7 +32,8 @@ v1 与 v2 两次部署之间，QA 对生产做了独立回归（Go，0 阻塞 0 
 ## 二、账号体系一页说明（给 Hao 试玩用）
 
 - 试玩用户开 **邮箱+密码** 账号（注册即用，不发确认邮件）；现成测试号
-  `test+1/2/3@supper-valet.local`（中餐控/西餐控/从零开始），密码 `valet-test-2026`。
+  `test+1/2/3@supper-valet.local`（中餐控/西餐控/从零开始），密码见
+  `app/web/.env.local`（不进仓库）。
 - 每个账号数据在 Supabase 按 `auth.uid()` RLS 硬隔离（经对抗式验证：
   冒名读/写/删全部 0 生效）。**不登录 = 游客模式**，本机 Profile 原样保留。
 - 你在 Supabase Dashboard（Table Editor / `admin_roll_feed` 视图）能直接看

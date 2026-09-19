@@ -38,3 +38,7 @@ scratch/
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# 会话记录原文（含测试账号口令等，蒸馏后的结论在 INSTRUCTION.md §0）
+previous-fable-chat.md
+*-chat.md
