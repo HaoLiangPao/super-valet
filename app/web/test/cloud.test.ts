@@ -11,7 +11,10 @@ import {
   changedRows, feedbackToRow, indexBy, rollToRow, rowToFeedback, rowToRoll, rowsToState,
   stateToCategoryRows, stateToRestaurantRows,
 } from '../src/lib/cloud/rows';
-import type { CategoryRow, FeedbackRow, ProfileRow, RestaurantRow, RollRow } from '../src/lib/cloud/rows';
+import type {
+  CategoryRow, DishRow, FeedbackRow, FetchLogRow, PoolRow, ProfileRow,
+  RestaurantRow, RollRow, SourceRow,
+} from '../src/lib/cloud/rows';
 import { PERSONA_CATEGORY_PRIORS } from '../src/lib/profiles/personas';
 import { createProfile, setActiveProfile } from '../src/lib/profiles/profiles';
 import { currentBackend, isCloudMode, localBackend, setStoreBackend } from '../src/lib/store/backend';
@@ -26,6 +29,10 @@ interface FakeState {
   categories: Map<string, CategoryRow>;
   rolls: RollRow[];
   feedbacks: Map<string, FeedbackRow>;
+  pool: Map<string, PoolRow>;
+  dishes: DishRow[];
+  sources: SourceRow[];
+  fetchLog: FetchLogRow[];
 }
 
 interface FakeGateway extends CloudGateway {
@@ -44,6 +51,10 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     categories: seed.categories ?? new Map(),
     rolls: seed.rolls ?? [],
     feedbacks: seed.feedbacks ?? new Map(),
+    pool: seed.pool ?? new Map(),
+    dishes: seed.dishes ?? [],
+    sources: seed.sources ?? [],
+    fetchLog: seed.fetchLog ?? [],
   };
   const calls: string[] = [];
   let failures = 0;
@@ -105,6 +116,56 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     async updateProfile(patch) {
       guard('updateProfile');
       db.profile = { id: 'u1', email: null, display_name: null, emoji: null, persona_key: null, onboarded_at: null, ...db.profile, ...patch };
+    },
+
+    async fetchPool() {
+      return [...db.pool.values()];
+    },
+    async fetchDishes() {
+      return [...db.dishes];
+    },
+    async fetchSources() {
+      return [...db.sources];
+    },
+    async importRestaurant(payload) {
+      guard(`importRestaurant:${payload.restaurant.place_id}`);
+      const placeId = payload.restaurant.place_id;
+      let sourceId: string | null = null;
+      if (payload.source) {
+        sourceId = `src-${placeId}`;
+        db.sources = [
+          ...db.sources.filter((x) => x.place_id !== placeId),
+          { id: sourceId, place_id: placeId, raw_text: payload.source.raw_text },
+        ];
+      }
+      db.pool.set(placeId, {
+        place_id: placeId,
+        added_at: '2026-09-25T00:00:00.000Z',
+        source_id: sourceId,
+        restaurants: payload.restaurant,
+      });
+      db.dishes = [
+        ...db.dishes.filter((d) => d.place_id !== placeId),
+        ...payload.dishes.map((d) => ({
+          place_id: placeId,
+          name_raw: d.name,
+          quote: d.quote ?? null,
+          sentiment: d.sentiment ?? null,
+        })),
+      ];
+    },
+    async deleteFromPool(placeId) {
+      guard(`deleteFromPool:${placeId}`);
+      db.pool.delete(placeId);
+      db.dishes = db.dishes.filter((d) => d.place_id !== placeId);
+      db.sources = db.sources.filter((x) => x.place_id !== placeId);
+    },
+    async fetchFetchLog() {
+      return [...db.fetchLog];
+    },
+    async insertFetchLog(row) {
+      guard('insertFetchLog');
+      db.fetchLog = [row, ...db.fetchLog];
     },
   };
 }

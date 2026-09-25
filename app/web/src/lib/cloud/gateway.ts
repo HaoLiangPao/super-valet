@@ -2,10 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
   CategoryRow,
+  DishRow,
   FeedbackRow,
+  FetchLogRow,
+  ImportPayload,
+  PoolRow,
   ProfileRow,
   RestaurantRow,
   RollRow,
+  SourceRow,
 } from './rows';
 
 /**
@@ -25,6 +30,17 @@ export interface CloudGateway {
   insertRoll(row: RollRow): Promise<void>;
   upsertFeedback(row: FeedbackRow): Promise<void>;
   updateProfile(patch: Partial<Omit<ProfileRow, 'id'>>): Promise<void>;
+
+  /* ── 餐厅池与抓取台账（design/0005）──────────────────────────── */
+
+  fetchPool(): Promise<PoolRow[]>;
+  fetchDishes(): Promise<DishRow[]>;
+  fetchSources(): Promise<SourceRow[]>;
+  /** 一次导入 = 事实表 upsert + 入池 + 菜品 + 笔记原文 */
+  importRestaurant(payload: ImportPayload): Promise<void>;
+  deleteFromPool(placeId: string): Promise<void>;
+  fetchFetchLog(): Promise<FetchLogRow[]>;
+  insertFetchLog(row: FetchLogRow): Promise<void>;
 }
 
 interface PostgrestLikeError {
@@ -142,6 +158,132 @@ export function supabaseGateway(client: SupabaseClient, userId: string): CloudGa
       assertOk(
         await client.from('profiles').upsert({ id: userId, ...patch }, { onConflict: 'id' }),
         '更新账号档案失败',
+      );
+    },
+    async fetchPool() {
+      // PostgREST 把嵌套资源推断成数组，运行时这里是「一对一」的单个对象；
+      // 只能在这一处收口成 PoolRow，别把 any 扩散出去。
+      const res = (await client
+        .from('user_restaurant_pool')
+        .select('place_id, added_at, source_id, restaurants(*)')
+        .eq('user_id', userId)) as unknown as {
+        data: PoolRow[] | null;
+        error: { message: string } | null;
+      };
+      return unwrap<PoolRow[]>(res, '读取餐厅池失败');
+    },
+
+    async fetchDishes() {
+      return unwrap<DishRow[]>(
+        await client
+          .from('dishes')
+          .select('place_id, name_raw, quote, sentiment')
+          .eq('user_id', userId),
+        '读取菜品失败',
+      );
+    },
+
+    async fetchSources() {
+      return unwrap<SourceRow[]>(
+        await client
+          .from('sources')
+          .select('id, place_id, raw_text')
+          .eq('user_id', userId),
+        '读取笔记原文失败',
+      );
+    },
+
+    async importRestaurant(payload: ImportPayload) {
+      // 事实表是共享的：同一家店别人已经抓过就覆盖成最新一次，不重复建行
+      assertOk(
+        await client.from('restaurants').upsert(payload.restaurant, { onConflict: 'place_id' }),
+        '写入餐厅事实失败',
+      );
+
+      let sourceId: string | null = null;
+      if (payload.source) {
+        const { data, error } = await client
+          .from('sources')
+          .insert({
+            user_id: userId,
+            place_id: payload.restaurant.place_id,
+            type: payload.source.type,
+            raw_text: payload.source.raw_text,
+          })
+          .select('id')
+          .single();
+        if (error) throw new Error(`写入笔记原文失败: ${error.message}`);
+        sourceId = (data as { id: string }).id;
+      }
+
+      assertOk(
+        await client.from('user_restaurant_pool').upsert(
+          {
+            user_id: userId,
+            place_id: payload.restaurant.place_id,
+            added_at: new Date().toISOString(),
+            source_id: sourceId,
+          },
+          { onConflict: 'user_id,place_id' },
+        ),
+        '加入餐厅池失败',
+      );
+
+      if (payload.dishes.length > 0) {
+        // 重新导入同一家店时先清掉旧菜品，避免同名菜越积越多
+        assertOk(
+          await client.from('dishes').delete()
+            .eq('user_id', userId).eq('place_id', payload.restaurant.place_id),
+          '清理旧菜品失败',
+        );
+        assertOk(
+          await client.from('dishes').insert(
+            payload.dishes.map((d) => ({
+              user_id: userId,
+              place_id: payload.restaurant.place_id,
+              name_raw: d.name,
+              quote: d.quote ?? null,
+              sentiment: d.sentiment ?? null,
+            })),
+          ),
+          '写入菜品失败',
+        );
+      }
+    },
+
+    async deleteFromPool(placeId: string) {
+      // 只删「我和这家店的关系」，共享事实表留着给别人用
+      assertOk(
+        await client.from('user_restaurant_pool').delete()
+          .eq('user_id', userId).eq('place_id', placeId),
+        '移出餐厅池失败',
+      );
+      assertOk(
+        await client.from('dishes').delete().eq('user_id', userId).eq('place_id', placeId),
+        '删除菜品失败',
+      );
+      assertOk(
+        await client.from('sources').delete().eq('user_id', userId).eq('place_id', placeId),
+        '删除笔记原文失败',
+      );
+    },
+
+    async fetchFetchLog() {
+      return unwrap<FetchLogRow[]>(
+        await client
+          .from('fetch_log')
+          .select('at, kind, query, place_id, place_name, provider, result_count, outcome, note')
+          .eq('user_id', userId)
+          .order('at', { ascending: false })
+          .limit(200),
+        '读取抓取台账失败',
+      );
+    },
+
+    async insertFetchLog(row: FetchLogRow) {
+      assertOk(
+        await client.from('fetch_log').insert({ user_id: userId, ...row }),
+        '写入抓取台账失败',
       );
     },
   };

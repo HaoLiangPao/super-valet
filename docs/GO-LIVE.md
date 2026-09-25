@@ -46,8 +46,24 @@ Hobby 档；`*-projects.vercel.app` 长链接受 Vercel Authentication 保护返
 
 - [ ] 域名（约 $12/年）。不买也行，`supper-valet.vercel.app` 这类免费子域够 POC。
 
-## 4. 明确不用买
+## 4. EXPLORE 导入轮（2026-09-25）
 
-- Google Places API —— 本轮餐厅池是静态种子数据。
-- Claude API —— 菜品抽取还没排上。
+- [x] **Google Places API key**：✅ Hao 已提供，实测可用（Text Search
+      每月 5,000 次免费额度足够我们的量级）。
+- [x] **OpenRouter API key**：✅ Hao 已提供，用 `deepseek/deepseek-chat`，
+      实测一次笔记抽取约 0.02 美分。
+- [ ] **⚠️ 待你做：在 Supabase SQL Editor 里跑一次建表 SQL**
+      —— 复制 `supabase/migrations/0002_explore_import.sql` 全文，
+      粘进 Dashboard → SQL Editor → Run。**登录态的导入功能在这之前用不了**
+      （游客模式不受影响）。
+      原因：`SUPABASE_ACCESS_TOKEN` 现在返回 401（可能已过期），
+      而直连 Postgres 的 `db.<ref>.supabase.co` 只有 IPv6，这台机器没有 IPv6 路由。
+      要让我以后能自己跑迁移，二选一：① 给一个新的 access token；
+      ② 在 Dashboard → Settings → Database 里找到 **Connection pooler** 的
+      连接串（形如 `postgres.<ref>@aws-N-<region>.pooler.supabase.com:5432`）
+      填进 `.env.local` 的 `SUPABASE_DB_URL`。之后 `node scripts/migrate.mjs <file>.sql` 即可。
+
+## 5. 明确不用买
+
+- Claude API —— LLM 已改用 OpenRouter 上的 DeepSeek。
 - Vercel Pro / Supabase Pro —— 试玩规模离付费线很远。

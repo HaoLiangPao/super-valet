@@ -1,7 +1,8 @@
 import { getActiveProfile, getActiveProfileId, profileKey } from '../profiles/profiles';
 import type { DataSuffix } from '../profiles/profiles';
 import { emptyState } from '../engine/types';
-import type { EngineState, FeedbackRecord, RollRecord } from '../engine/types';
+import type { EngineState, FeedbackRecord, Restaurant, RollRecord } from '../engine/types';
+import type { DishMention, FetchLogEntry } from '../places/contract';
 
 /**
  * 存储后端抽象（ADR-0006）。
@@ -21,6 +22,49 @@ export interface StoreBackend {
   appendFeedback(record: FeedbackRecord): void;
   /** 进 `exportAll()` 的 `profile` 字段，用来分辨这份导出是谁的 */
   exportIdentity(): unknown;
+
+  /* ── 餐厅池（design/0005 EXPLORE 导入）──────────────────────────── */
+
+  /** 当前身份**自己导入**的餐厅；不含种子 15 家（合并请用 `store/pool.ts`） */
+  loadPool(): PoolEntry[];
+  /** 幂等：同一个 placeId 再导入一次 = 覆盖，不会出现两条 */
+  addToPool(entry: PoolEntry): void;
+  removeFromPool(placeId: string): void;
+
+  /* ── 抓取台账（design/0005 §4.7）──────────────────────────────── */
+
+  /** 倒序返回最近的抓取记录 */
+  loadFetchLog(): FetchLogEntry[];
+  appendFetchLog(entry: FetchLogEntry): void;
+}
+
+/**
+ * 一次导入落下来的全部东西。
+ *
+ * 为什么把 dishes / sourceText 和餐厅捆在一起，而不是各存各的：
+ * 它们是同一次「用户主动粘贴」的产物，删餐厅就该一起删。
+ * 云端那边拆成 `restaurants` / `dishes` / `sources` 三张表（design/0001 §6），
+ * 这个形状是两个后端共同的运行时视图。
+ */
+export interface PoolEntry {
+  restaurant: Restaurant;
+  /** 与笔记一起抽到的菜品；按店名搜进来的为空数组 */
+  dishes: DishMention[];
+  addedAt: string;
+  /** 用户粘贴的笔记原文（design/0001 §6 的 `sources.raw_text`），按店名导入时没有 */
+  sourceText?: string;
+  /** 事实数据的抓取时间，判断是否该按 30 天 TTL 重抓 */
+  fetchedAt?: string;
+  /** 一行抓取摘要 */
+  summary?: string;
+}
+
+function isPoolEntry(v: unknown): v is PoolEntry {
+  if (typeof v !== 'object' || v === null) return false;
+  const e = v as Partial<PoolEntry>;
+  return typeof e.restaurant === 'object'
+    && e.restaurant !== null
+    && typeof (e.restaurant as Restaurant).placeId === 'string';
 }
 
 /* ------------------------------------------------------------------ *
@@ -79,6 +123,27 @@ export const localBackend: StoreBackend = {
   },
   exportIdentity() {
     return getActiveProfile();
+  },
+
+  loadPool() {
+    // 存的是用户数据，不是我们写的：脏条目直接丢掉，不让一条坏记录带崩摇一摇
+    return read<unknown[]>('pool.v1', []).filter(isPoolEntry);
+  },
+  addToPool(entry) {
+    const next = this.loadPool().filter((e) => e.restaurant.placeId !== entry.restaurant.placeId);
+    next.push(entry);
+    write('pool.v1', next);
+  },
+  removeFromPool(placeId) {
+    write('pool.v1', this.loadPool().filter((e) => e.restaurant.placeId !== placeId));
+  },
+
+  loadFetchLog() {
+    return read<FetchLogEntry[]>('fetchlog.v1', []);
+  },
+  appendFetchLog(entry) {
+    // 台账只用于排查与成本观察，不必无限增长：留最近 200 条
+    write('fetchlog.v1', [entry, ...this.loadFetchLog()].slice(0, 200));
   },
 };
 

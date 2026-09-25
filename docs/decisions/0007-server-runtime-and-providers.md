@@ -18,7 +18,7 @@ tags: [infra, api, secrets]
 ## 背景 / Context
 
 design/0005（EXPLORE 导入）需要调用两个带密钥的外部服务：Google Places API
-与 Anthropic API。当前应用是**纯静态站**（四条路由全部预渲染，见 research/0004），
+与一个 LLM（经 OpenRouter 调 DeepSeek）。当前应用是**纯静态站**（四条路由全部预渲染，见 research/0004），
 没有任何服务端代码。密钥绝不能进浏览器，因此必须引入服务端运行时。
 
 约束：单人维护、月预算个位数美金、不增加新的托管平台。
@@ -30,12 +30,19 @@ design/0005（EXPLORE 导入）需要调用两个带密钥的外部服务：Goog
 1. 在现有 Next.js 应用内新增 **Route Handler**（`src/app/api/**/route.ts`），
    部署为 Vercel 的 serverless function，与前端同仓同域，不新增托管平台。
 2. 密钥用**非** `NEXT_PUBLIC_` 前缀的服务端环境变量
-   （`GOOGLE_PLACES_API_KEY`、`ANTHROPIC_API_KEY`），只在 Route Handler 内读取。
+   （`GOOGLE_PLACES_API_KEY`、`OPENROUTER_API_KEY`），只在 Route Handler 内读取。
 3. 外部数据源一律经 **provider 接口**访问（`PlaceProvider` / `NoteAnalyzer`），
    随包提供 `fixture` 实现；缺少密钥时自动回落 fixture，并在 UI 标注「演示数据」。
 4. 餐厅数据落 Supabase 新表（`restaurants` 共享事实 + `user_restaurant_pool` 按用户），
    RLS 规则沿用 ADR-0006：池子表 `auth.uid() = user_id`；
    `restaurants` 事实表登录用户只读、写入只经服务端。
+
+### LLM 选型（Hao 2026-09-25 指定）
+
+用 **DeepSeek（`deepseek/deepseek-chat`，经 OpenRouter）**，不装 SDK，直接
+fetch 打 OpenAI 兼容接口。实测一次笔记抽取约 190 输入 + 180 输出 token，
+按 OpenRouter 报价合每次约 0.02 美分 —— 导入这种低频操作的模型成本可以忽略。
+模型名走 `OPENROUTER_MODEL` 环境变量，换模型不改代码。
 
 ## 理由 / Rationale
 

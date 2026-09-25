@@ -1,18 +1,23 @@
 import { personaSeedState } from '../profiles/personas';
-import type { StoreBackend } from '../store/backend';
+import type { StoreBackend, PoolEntry } from '../store/backend';
 import { emptyState } from '../engine/types';
+import type { FetchLogEntry } from '../places/contract';
 import type { EngineState, FeedbackRecord, RollRecord } from '../engine/types';
 import type { CloudGateway } from './gateway';
 import {
   changedRows,
   feedbackToRow,
+  fetchLogToRow,
   indexBy,
   rollToRow,
   rowToFeedback,
+  rowToFetchLog,
   rowToRoll,
+  rowsToPool,
   rowsToState,
   stateToCategoryRows,
   stateToRestaurantRows,
+  toImportPayload,
 } from './rows';
 import type { CategoryRow, RestaurantRow } from './rows';
 
@@ -54,6 +59,8 @@ export class CloudStore implements StoreBackend {
   private state: EngineState;
   private rolls: RollRecord[];
   private feedbacks: FeedbackRecord[];
+  private pool: PoolEntry[];
+  private fetchLog: FetchLogEntry[];
 
   /** 上一次成功推上去的行，用来做差分：整份 state 存进来，只推真正变了的行 */
   private lastRestaurantRows: Map<string, RestaurantRow>;
@@ -72,12 +79,16 @@ export class CloudStore implements StoreBackend {
       state: EngineState;
       rolls: RollRecord[];
       feedbacks: FeedbackRecord[];
+      pool: PoolEntry[];
+      fetchLog: FetchLogEntry[];
     },
   ) {
     this.identity = identity;
     this.state = snapshot.state;
     this.rolls = snapshot.rolls;
     this.feedbacks = snapshot.feedbacks;
+    this.pool = snapshot.pool;
+    this.fetchLog = snapshot.fetchLog;
     this.lastRestaurantRows = indexBy(stateToRestaurantRows(this.state), (r) => r.place_id);
     this.lastCategoryRows = indexBy(stateToCategoryRows(this.state), (r) => r.category);
   }
@@ -139,6 +150,40 @@ export class CloudStore implements StoreBackend {
     const copy = clone(record);
     this.feedbacks.push(copy);
     this.enqueue({ label: '反馈', run: () => this.gateway.upsertFeedback(feedbackToRow(copy)) });
+  }
+
+  loadPool(): PoolEntry[] {
+    return this.pool.map((e) => clone(e));
+  }
+
+  addToPool(entry: PoolEntry): void {
+    this.pool = [...this.pool.filter((e) => e.restaurant.placeId !== entry.restaurant.placeId), clone(entry)];
+    const payload = toImportPayload(entry);
+    this.enqueue({
+      label: `导入 ${entry.restaurant.name}`,
+      run: () => this.gateway.importRestaurant(payload),
+    });
+  }
+
+  removeFromPool(placeId: string): void {
+    this.pool = this.pool.filter((e) => e.restaurant.placeId !== placeId);
+    this.enqueue({
+      label: `移出 ${placeId}`,
+      run: () => this.gateway.deleteFromPool(placeId),
+    });
+  }
+
+  loadFetchLog(): FetchLogEntry[] {
+    return this.fetchLog.map((e) => clone(e));
+  }
+
+  appendFetchLog(entry: FetchLogEntry): void {
+    this.fetchLog = [clone(entry), ...this.fetchLog].slice(0, 200);
+    const row = fetchLogToRow(entry);
+    this.enqueue({
+      label: '记录抓取台账',
+      run: () => this.gateway.insertFetchLog(row),
+    });
   }
 
   exportIdentity(): unknown {
@@ -217,12 +262,31 @@ export async function openCloudStore(
   userId: string,
   email: string | null,
 ): Promise<CloudStore> {
+  // 核心数据（口味/摇号/反馈）拿不到就该报错登录失败；
+  // 但**附属数据拿不到不该让人进不去**：EXPLORE 的四张表是后加的，
+  // 迁移比部署晚一步时，旧账号会 404 —— 那时候用户仍然应该能正常摇一摇。
   const [profile, restaurants, categories, rollRows, feedbackRows] = await Promise.all([
     gateway.fetchProfile(),
     gateway.fetchRestaurants(),
     gateway.fetchCategories(),
     gateway.fetchRolls(),
     gateway.fetchFeedbacks(),
+  ]);
+
+  async function optional<T>(what: string, run: () => Promise<T[]>): Promise<T[]> {
+    try {
+      return await run();
+    } catch (err) {
+      console.warn(`[cloud] ${what} 读取失败，按空处理（EXPLORE 相关表可能还没迁移）`, err);
+      return [];
+    }
+  }
+
+  const [poolRows, dishRows, sourceRows, fetchLogRows] = await Promise.all([
+    optional('餐厅池', () => gateway.fetchPool()),
+    optional('菜品', () => gateway.fetchDishes()),
+    optional('笔记原文', () => gateway.fetchSources()),
+    optional('抓取台账', () => gateway.fetchFetchLog()),
   ]);
 
   const identity: CloudIdentity = {
@@ -238,5 +302,7 @@ export async function openCloudStore(
     state: rowsToState(restaurants, categories),
     rolls: rollRows.map(rowToRoll),
     feedbacks: feedbackRows.map(rowToFeedback),
+    pool: rowsToPool(poolRows, dishRows, sourceRows),
+    fetchLog: fetchLogRows.map(rowToFetchLog),
   });
 }

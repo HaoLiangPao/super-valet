@@ -7,6 +7,7 @@ const TABS = [
   { href: '/', glyph: '◎', label: '摇' },
   { href: '/pool', glyph: '▤', label: '池' },
   { href: '/history', glyph: '▦', label: '记录' },
+  { href: '/explore', glyph: '✦', label: '探索' },
 ] as const;
 
 export default function BottomNav() {

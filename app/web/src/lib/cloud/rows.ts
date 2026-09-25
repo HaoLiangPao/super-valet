@@ -1,12 +1,16 @@
+import type { ServiceWindow } from '../../data/seed-restaurants';
 import { emptyState } from '../engine/types';
 import type {
   CandidateSnapshot,
   EngineState,
   FeedbackRecord,
   Meal,
+  Restaurant,
   RollRecord,
   SkipReason,
 } from '../engine/types';
+import type { DishMention, FetchLogEntry } from '../places/contract';
+import type { PoolEntry } from '../store/backend';
 
 /**
  * EngineState / RollRecord / FeedbackRecord 与 Supabase 行之间的纯映射。
@@ -207,4 +211,213 @@ export function changedRows<T>(
     const before = prev.get(key(row));
     return before === undefined || JSON.stringify(before) !== JSON.stringify(row);
   });
+}
+
+/* ---------------------------------------------------------------- *
+ * 餐厅池（design/0005 EXPLORE 导入）
+ *
+ * 三张表的分工（supabase/migrations/0002_explore_import.sql）：
+ *   restaurants          —— 共享事实表，place_id 主键，登录用户只读，
+ *                           写入只走 security definer 函数 import_restaurant()
+ *   user_restaurant_pool —— 谁把哪家店放进了自己的池子，RLS auth.uid() = user_id
+ *   dishes / sources     —— 用户粘贴的笔记及其抽取物，**按用户隔离**
+ *                           （design/0001 §6 原本没有 user_id；粘贴的原文是私人内容，
+ *                            共享表会把 A 的笔记泄漏给 B，这里刻意偏离）
+ * ---------------------------------------------------------------- */
+
+export interface RestaurantFactRow {
+  place_id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  primary_cuisine: string;
+  tags: string[];
+  solo_friendly: boolean;
+  slot_lock: string[];
+  is_main_meal: boolean;
+  prior_bias: number;
+  dine_in: boolean;
+  price_level: number | null;
+  rating: number;
+  rating_count: number;
+  closed_days: number[];
+  service_windows: ServiceWindow[];
+  distance_km: number;
+  bucket: string;
+  confidence: number;
+  reason: string;
+}
+
+export interface PoolRow {
+  place_id: string;
+  added_at: string;
+  source_id: string | null;
+  /** PostgREST 的嵌套资源；关联行缺失时为 null */
+  restaurants: RestaurantFactRow | null;
+}
+
+export interface DishRow {
+  place_id: string;
+  name_raw: string;
+  quote: string | null;
+  sentiment: string | null;
+}
+
+export interface SourceRow {
+  id: string;
+  place_id: string;
+  raw_text: string | null;
+}
+
+export function restaurantToFactRow(r: Restaurant): RestaurantFactRow {
+  return {
+    place_id: r.placeId,
+    name: r.name,
+    address: r.address,
+    lat: r.lat,
+    lng: r.lng,
+    primary_cuisine: r.primary,
+    tags: r.tags,
+    solo_friendly: r.soloFriendly,
+    slot_lock: r.slotLock,
+    is_main_meal: r.isMainMeal,
+    prior_bias: r.priorBias,
+    dine_in: r.dineIn,
+    price_level: r.priceLevel,
+    rating: r.rating,
+    rating_count: r.ratingCount,
+    closed_days: r.closedDays,
+    service_windows: r.serviceWindows,
+    distance_km: r.distanceKm,
+    bucket: r.bucket,
+    confidence: r.confidence,
+    reason: r.reason,
+  };
+}
+
+export function factRowToRestaurant(row: RestaurantFactRow): Restaurant {
+  return {
+    placeId: row.place_id,
+    name: row.name,
+    address: row.address,
+    lat: row.lat,
+    lng: row.lng,
+    primary: row.primary_cuisine,
+    tags: row.tags ?? [],
+    soloFriendly: row.solo_friendly,
+    slotLock: (row.slot_lock ?? []) as Restaurant['slotLock'],
+    isMainMeal: row.is_main_meal,
+    priorBias: row.prior_bias,
+    dineIn: row.dine_in,
+    priceLevel: row.price_level,
+    rating: row.rating,
+    ratingCount: row.rating_count,
+    closedDays: row.closed_days ?? [],
+    serviceWindows: row.service_windows ?? [],
+    distanceKm: row.distance_km,
+    bucket: row.bucket as Restaurant['bucket'],
+    confidence: row.confidence,
+    reason: row.reason,
+  };
+}
+
+/** 一次导入打包成一个 RPC 调用：三张表的写在数据库里是一个事务 */
+export interface ImportPayload {
+  restaurant: RestaurantFactRow;
+  dishes: Array<{ name: string; quote?: string; sentiment?: string }>;
+  source: { type: string; raw_text: string } | null;
+}
+
+export function toImportPayload(entry: PoolEntry): ImportPayload {
+  return {
+    restaurant: restaurantToFactRow(entry.restaurant),
+    dishes: entry.dishes.map((d) => ({
+      name: d.name,
+      ...(d.quote ? { quote: d.quote } : {}),
+      ...(d.sentiment ? { sentiment: d.sentiment } : {}),
+    })),
+    source: entry.sourceText
+      ? { type: 'manual_note', raw_text: entry.sourceText }
+      : null,
+  };
+}
+
+/** 三张表的行 → 运行时的 PoolEntry 列表 */
+export function rowsToPool(
+  pool: PoolRow[],
+  dishes: DishRow[],
+  sources: SourceRow[],
+): PoolEntry[] {
+  const dishesByPlace = new Map<string, DishMention[]>();
+  for (const d of dishes) {
+    const list = dishesByPlace.get(d.place_id) ?? [];
+    list.push({
+      name: d.name_raw,
+      ...(d.quote ? { quote: d.quote } : {}),
+      ...(d.sentiment === 'positive' || d.sentiment === 'neutral' || d.sentiment === 'negative'
+        ? { sentiment: d.sentiment }
+        : {}),
+    });
+    dishesByPlace.set(d.place_id, list);
+  }
+  const sourceById = new Map(sources.map((s) => [s.id, s]));
+
+  return pool
+    .filter((row): row is PoolRow & { restaurants: RestaurantFactRow } => row.restaurants !== null)
+    .map((row) => {
+      const source = row.source_id ? sourceById.get(row.source_id) : undefined;
+      return {
+        restaurant: factRowToRestaurant(row.restaurants),
+        dishes: dishesByPlace.get(row.place_id) ?? [],
+        addedAt: row.added_at,
+        ...(source?.raw_text ? { sourceText: source.raw_text } : {}),
+      };
+    });
+}
+
+/* ── 抓取台账（design/0005 §4.7）──────────────────────────────────── */
+
+export interface FetchLogRow {
+  at: string;
+  kind: string;
+  query: string | null;
+  place_id: string | null;
+  place_name: string | null;
+  provider: string;
+  result_count: number | null;
+  outcome: string;
+  note: string | null;
+}
+
+export function fetchLogToRow(e: FetchLogEntry): FetchLogRow {
+  return {
+    at: e.at,
+    kind: e.kind,
+    query: e.query ?? null,
+    place_id: e.placeId ?? null,
+    place_name: e.placeName ?? null,
+    provider: e.provider,
+    result_count: e.resultCount ?? null,
+    outcome: e.outcome,
+    note: e.note ?? null,
+  };
+}
+
+export function rowToFetchLog(row: FetchLogRow): FetchLogEntry {
+  const kind: FetchLogEntry['kind'] =
+    row.kind === 'analyze' || row.kind === 'preview' || row.kind === 'refresh' ? row.kind : 'search';
+  const outcome: FetchLogEntry['outcome'] =
+    row.outcome === 'not_found' || row.outcome === 'error' ? row.outcome : 'ok';
+  return {
+    at: row.at,
+    kind,
+    provider: row.provider,
+    outcome,
+    ...(row.query ? { query: row.query } : {}),
+    ...(row.place_id ? { placeId: row.place_id } : {}),
+    ...(row.place_name ? { placeName: row.place_name } : {}),
+    ...(row.result_count !== null ? { resultCount: row.result_count } : {}),
+    ...(row.note ? { note: row.note } : {}),
+  };
 }

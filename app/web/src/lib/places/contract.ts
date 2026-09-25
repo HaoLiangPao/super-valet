@@ -97,6 +97,10 @@ export interface NoteAnalyzer {
 export interface ImportPreview {
   /** 已拼好的引擎餐厅对象，距离与 bucket 已按锚点算好 */
   restaurant: Restaurant;
+  /** 这份事实数据是什么时候从 Places 抓的；30 天 TTL 的判据 */
+  fetchedAt: string;
+  /** 一行人话的抓取摘要，随餐厅落库，便于在 Supabase 里直接看「我们抓到了什么」 */
+  summary: string;
   /** 与笔记一起抽到的菜品；无笔记时为空数组 */
   dishes: DishMention[];
   /** true = 该 placeId 已在当前身份的池子里 */
@@ -123,3 +127,36 @@ export interface ApiError { error: true; message: string }
 
 /** 粘贴文本长度上限（design/0005 §6 的成本护栏），前后端都要校验 */
 export const MAX_NOTE_CHARS = 8000;
+
+// ── 6. 抓取台账与缓存时效 ─────────────────────────────────────────────
+
+/**
+ * 每一次对外抓取都记一行（Hao 2026-09-25 的要求：
+ * 「每次抓更多餐厅时保留一份抓到了什么的摘要」）。
+ * 按身份存：登录走 Supabase `fetch_log`，游客走 localStorage 命名空间。
+ */
+export interface FetchLogEntry {
+  at: string;
+  kind: 'search' | 'analyze' | 'preview' | 'refresh';
+  /** 搜索词或笔记摘要（笔记只留前 80 字，原文在 sources 表） */
+  query?: string;
+  placeId?: string;
+  placeName?: string;
+  /** google / fixture / deepseek / fixture-llm */
+  provider: string;
+  resultCount?: number;
+  outcome: 'ok' | 'not_found' | 'error';
+  note?: string;
+}
+
+/**
+ * 餐厅事实数据的缓存时效（Hao 2026-09-25：「先按每月更新」）。
+ * 超过这个天数就认为营业时间/评分可能已经变了，下次碰到时重抓。
+ */
+export const FACTS_TTL_DAYS = 30;
+
+export function isStale(fetchedAt: string, now: Date = new Date()): boolean {
+  const t = Date.parse(fetchedAt);
+  if (Number.isNaN(t)) return true;
+  return (now.getTime() - t) / 86_400_000 > FACTS_TTL_DAYS;
+}

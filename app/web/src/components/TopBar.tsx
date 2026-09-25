@@ -8,6 +8,7 @@ const TITLES: Record<string, string> = {
   '/': '今天吃什么',
   '/pool': '店铺池',
   '/history': '决策记录',
+  '/explore': '探索',
 };
 
 export default function TopBar() {

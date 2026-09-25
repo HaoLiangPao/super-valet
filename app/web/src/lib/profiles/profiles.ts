@@ -14,7 +14,7 @@ export const PROFILES_KEY = 'sv.profiles.v1';
 export const ACTIVE_KEY = 'sv.activeProfile.v1';
 
 /** 一个 Profile 名下的全部数据 key 后缀；将来新增数据类型必须登记在这里 */
-export const DATA_SUFFIXES = ['state.v1', 'rolls.v1', 'feedbacks.v1'] as const;
+export const DATA_SUFFIXES = ['state.v1', 'rolls.v1', 'feedbacks.v1', 'pool.v1', 'fetchlog.v1'] as const;
 export type DataSuffix = (typeof DATA_SUFFIXES)[number];
 
 /** P0 的单用户全局 key，只在迁移时出现一次 */
@@ -22,6 +22,10 @@ export const LEGACY_KEYS: Record<DataSuffix, string> = {
   'state.v1': 'sv.state.v1',
   'rolls.v1': 'sv.rolls.v1',
   'feedbacks.v1': 'sv.feedbacks.v1',
+  // 'pool.v1' 是账号轮之后才有的数据类型，P0 时代不存在全局 key；
+  // 保留一个不会命中的名字，只为让 Record<DataSuffix, string> 保持完整。
+  'pool.v1': 'sv.pool.v1',
+  'fetchlog.v1': 'sv.fetchlog.v1',
 };
 
 export function profileKey(profileId: string, suffix: DataSuffix): string {

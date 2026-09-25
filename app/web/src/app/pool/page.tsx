@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import Link from 'next/link';
+
 import { swatchFor } from '@/components/cuisineSwatch';
 import { SEED_RESTAURANTS } from '@/data/seed-restaurants';
 import { CATEGORY_LABELS, categoryOf } from '@/lib/engine/cuisine';
@@ -68,11 +70,9 @@ export default function PoolPage() {
         <StatTile value={cuisineCount} label="种菜系" />
       </div>
 
-      <button
-        type="button"
-        disabled
-        title="下个版本接 Google Places API"
-        className="btn btn-block"
+      <Link
+        href="/explore"
+        className="btn btn-block text-center"
         style={{
           height: 46,
           border: '1px dashed var(--color-accent-400)',
@@ -81,7 +81,7 @@ export default function PoolPage() {
         }}
       >
         ＋ 搜 Google Places 添加
-      </button>
+      </Link>
 
       <div className="flex flex-col gap-2">
         {SEED_RESTAURANTS.map((r, i) => {
