@@ -15,6 +15,8 @@
 | 0003 | [P0 Web App：Next.js 脚手架 + 两层 Bandit 引擎 + 牌堆 UI（本地优先）](design/0003-p0-web-app.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
 | 0004 | [第二轮：设计保真 UI（Organic + 动效）+ 多 Profile 隔离 + Vercel 就绪](design/0004-fidelity-ui-and-profiles.md) | ✅ accepted | claude-fable-5 | 2026-09-18 |
 | 0005 | [EXPLORE 页：按店名或粘贴笔记导入餐厅](design/0005-explore-import.md) | ✅ accepted | claude-opus-5 | 2026-09-20 |
+| 0006 | [餐厅目录、预设套餐、GPS 半径与池子管理](design/0006-catalog-packages-and-location.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
+| 0007 | [界面语言支持：默认简体中文，支持英文](design/0007-i18n.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
 
 ## Architecture Decisions (ADR)
 
@@ -29,6 +31,7 @@
 | 0005 | [两层 Bandit：菜系类别层进 schema，打分用软乘积](decisions/0005-two-layer-bandit-soft-product.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
 | 0006 | [试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留](decisions/0006-supabase-accounts-and-cloud-store.md) | 📝 proposed | claude-opus-5 | 2026-09-18 |
 | 0007 | [用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象](decisions/0007-server-runtime-and-providers.md) | 📝 proposed | claude-opus-5 | 2026-09-20 |
+| 0008 | [目录与池子分离；距离改为按当前位置在运行时计算](decisions/0008-catalog-pool-and-runtime-distance.md) | 📝 proposed | claude-opus-5 | 2026-09-26 |
 
 ## Research & Notes
 
@@ -43,4 +46,4 @@
 
 ---
 
-共 16 篇文档 · 索引生成于 2026-09-25 · 由 `scripts/gen_docs_index.py` 维护
+共 19 篇文档 · 索引生成于 2026-09-26 · 由 `scripts/gen_docs_index.py` 维护
