@@ -303,8 +303,19 @@ export function supabaseGateway(client: SupabaseClient, userId: string): CloudGa
     },
 
     async fetchSelection() {
+      // 行的返回顺序本来是不保证的，而池子页需要稳定的展示次序，所以显式排序。
+      // 语义（已在真实项目上验证）：一次 replaceSelection 里的多家店共享同一个
+      // now()，所以同批次内退化成按 place_id 字典序；跨批次按加入时间先后
+      // —— upsert 的 payload 不含 added_at，冲突时这一列不会被刷新。
+      // 云端因此**不保留调用方数组的原始顺序**（游客态的 localStorage 保留），
+      // 两边都确定、可复现，差异只影响展示次序，不影响摇一摇结果。
       return unwrap<SelectionRow[]>(
-        await client.from('user_pool_selection').select('place_id').eq('user_id', userId),
+        await client
+          .from('user_pool_selection')
+          .select('place_id')
+          .eq('user_id', userId)
+          .order('added_at', { ascending: true })
+          .order('place_id', { ascending: true }),
         '读取池子选择失败',
       );
     },
