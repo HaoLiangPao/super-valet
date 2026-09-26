@@ -3,6 +3,8 @@ import type { DataSuffix } from '../profiles/profiles';
 import { emptyState } from '../engine/types';
 import type { EngineState, FeedbackRecord, Restaurant, RollRecord } from '../engine/types';
 import type { DishMention, FetchLogEntry } from '../places/contract';
+import { defaultLocationPrefs } from '../catalog/types';
+import type { LocationPrefs, PoolSelection } from '../catalog/types';
 
 /**
  * 存储后端抽象（ADR-0006）。
@@ -36,6 +38,21 @@ export interface StoreBackend {
   /** 倒序返回最近的抓取记录 */
   loadFetchLog(): FetchLogEntry[];
   appendFetchLog(entry: FetchLogEntry): void;
+
+  /* ── 池子选择与位置偏好（design/0006、ADR-0008）──────────────── */
+
+  /**
+   * 用户显式选中的 placeId 列表。
+   * **`null` = 从没选过**，调用方必须默认成 15 家种子（`catalog/selection.ts`
+   * 的 `effectiveSelection()` 负责这件事）。`[]` 是「我一家都不要」，两者不同。
+   */
+  loadSelection(): PoolSelection;
+  /** 传 `null` 抹掉选择记录，回到「跟着种子走」 */
+  saveSelection(selection: PoolSelection): void;
+
+  /** 位置与半径偏好；没设过时返回 `defaultLocationPrefs()` */
+  loadLocationPrefs(): LocationPrefs;
+  saveLocationPrefs(prefs: LocationPrefs): void;
 }
 
 /**
@@ -102,6 +119,16 @@ function write(suffix: DataSuffix, value: unknown): void {
   }
 }
 
+function remove(suffix: DataSuffix): void {
+  const key = keyFor(suffix);
+  if (!key) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // 同 write：删不掉就算了
+  }
+}
+
 export const localBackend: StoreBackend = {
   loadState() {
     return { ...emptyState(), ...read<Partial<EngineState>>('state.v1', {}) };
@@ -136,6 +163,24 @@ export const localBackend: StoreBackend = {
   },
   removeFromPool(placeId) {
     write('pool.v1', this.loadPool().filter((e) => e.restaurant.placeId !== placeId));
+  },
+
+  loadSelection() {
+    // key 不存在 → null（从没选过）；存着 '[]' → 空数组（显式清空），两者必须分得开
+    const raw = read<unknown>('selection.v1', null);
+    if (!Array.isArray(raw)) return null;
+    return raw.filter((v): v is string => typeof v === 'string');
+  },
+  saveSelection(selection) {
+    if (selection === null) remove('selection.v1');
+    else write('selection.v1', selection);
+  },
+
+  loadLocationPrefs() {
+    return { ...defaultLocationPrefs(), ...read<Partial<LocationPrefs>>('location.v1', {}) };
+  },
+  saveLocationPrefs(prefs) {
+    write('location.v1', prefs);
   },
 
   loadFetchLog() {

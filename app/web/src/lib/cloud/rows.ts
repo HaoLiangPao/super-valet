@@ -11,6 +11,8 @@ import type {
 } from '../engine/types';
 import type { DishMention, FetchLogEntry } from '../places/contract';
 import type { PoolEntry } from '../store/backend';
+import { RADIUS_KM, defaultLocationPrefs } from '../catalog/types';
+import type { LocationPrefs, LocationSource, PoolSelection, RadiusOption } from '../catalog/types';
 
 /**
  * EngineState / RollRecord / FeedbackRecord 与 Supabase 行之间的纯映射。
@@ -420,4 +422,112 @@ export function rowToFetchLog(row: FetchLogRow): FetchLogEntry {
     ...(row.result_count !== null ? { resultCount: row.result_count } : {}),
     ...(row.note ? { note: row.note } : {}),
   };
+}
+
+/* ---------------------------------------------------------------- *
+ * 池子选择与位置偏好（design/0006、ADR-0008）
+ *
+ * 两张表（supabase/migrations/0003_catalog_selection_location.sql）：
+ *   user_pool_selection —— (user_id, place_id)，用户显式选中的那一串
+ *   user_location_prefs —— user_id 主键，位置来源 / 半径 / 上次 GPS
+ *
+ * 为什么 `selection_set` 这个布尔要住在 user_location_prefs 里：
+ * 「一家都没选」和「从没选过」在行模型里长得一样（都是零行），但语义完全不同 ——
+ * 后者必须默认成 15 家种子（ADR-0008 的向后兼容保证），前者必须保持空。
+ * 需要一个 per-user 的单行位置存这个标记，而 user_location_prefs 正好是
+ * per-user 单行表，再建第三张只装一个布尔的表不值得。
+ * 写入时两个 writer 各写自己的列（`LocationPrefsWrite` 不含 selection_set），
+ * 所以互不覆盖。
+ * ---------------------------------------------------------------- */
+
+export interface SelectionRow {
+  place_id: string;
+}
+
+export interface LocationPrefsRow {
+  source_kind: 'anchor' | 'gps' | null;
+  anchor_id: string | null;
+  lat: number | null;
+  lng: number | null;
+  accuracy: number | null;
+  source_ts: string | null;
+  radius: string;
+  last_gps_lat: number | null;
+  last_gps_lng: number | null;
+  last_gps_ts: string | null;
+  selection_set: boolean;
+}
+
+/** 位置偏好的写入形状：**不含** selection_set，避免两个 writer 互相覆盖 */
+export type LocationPrefsWrite = Omit<LocationPrefsRow, 'selection_set'>;
+
+function msToIso(ms: number | null | undefined): string | null {
+  if (typeof ms !== 'number' || !Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+function isoToMs(iso: string | null): number | null {
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+export function locationPrefsToRow(prefs: LocationPrefs): LocationPrefsWrite {
+  const source = prefs.source;
+  return {
+    source_kind: source ? source.kind : null,
+    anchor_id: source && source.kind === 'anchor' ? source.id : null,
+    lat: source ? source.lat : null,
+    lng: source ? source.lng : null,
+    accuracy: source && source.kind === 'gps' ? source.accuracy : null,
+    source_ts: source && source.kind === 'gps' ? msToIso(source.ts) : null,
+    radius: prefs.radius,
+    last_gps_lat: prefs.lastGps ? prefs.lastGps.lat : null,
+    last_gps_lng: prefs.lastGps ? prefs.lastGps.lng : null,
+    last_gps_ts: prefs.lastGps ? msToIso(prefs.lastGps.ts) : null,
+  };
+}
+
+function rowToSource(row: LocationPrefsRow): LocationSource | null {
+  if (row.lat === null || row.lng === null) return null;
+  if (row.source_kind === 'anchor') {
+    return { kind: 'anchor', id: row.anchor_id ?? '', lat: row.lat, lng: row.lng };
+  }
+  if (row.source_kind === 'gps') {
+    return {
+      kind: 'gps',
+      lat: row.lat,
+      lng: row.lng,
+      accuracy: row.accuracy ?? 0,
+      ts: isoToMs(row.source_ts) ?? 0,
+    };
+  }
+  return null;
+}
+
+/** 行 → 运行时偏好；没有行 = 从没设过，给契约的默认值 */
+export function rowToLocationPrefs(row: LocationPrefsRow | null): LocationPrefs {
+  if (!row) return defaultLocationPrefs();
+  const lastGpsTs = isoToMs(row.last_gps_ts);
+  return {
+    source: rowToSource(row),
+    radius: isRadiusOption(row.radius) ? row.radius : defaultLocationPrefs().radius,
+    lastGps:
+      row.last_gps_lat !== null && row.last_gps_lng !== null
+        ? { lat: row.last_gps_lat, lng: row.last_gps_lng, ts: lastGpsTs ?? 0 }
+        : null,
+  };
+}
+
+function isRadiusOption(v: string): v is RadiusOption {
+  return Object.prototype.hasOwnProperty.call(RADIUS_KM, v);
+}
+
+/**
+ * 行 → `PoolSelection`。
+ * 零行时要靠 `selection_set` 区分「显式清空」（`[]`）与「从没选过」（`null`）。
+ */
+export function rowsToSelection(rows: SelectionRow[], selectionSet: boolean): PoolSelection {
+  if (rows.length > 0) return rows.map((r) => r.place_id);
+  return selectionSet ? [] : null;
 }

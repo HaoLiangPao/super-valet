@@ -12,12 +12,19 @@ import {
   stateToCategoryRows, stateToRestaurantRows,
 } from '../src/lib/cloud/rows';
 import type {
-  CategoryRow, DishRow, FeedbackRow, FetchLogRow, PoolRow, ProfileRow,
-  RestaurantRow, RollRow, SourceRow,
+  CategoryRow, DishRow, FeedbackRow, FetchLogRow, LocationPrefsRow, LocationPrefsWrite,
+  PoolRow, ProfileRow, RestaurantRow, RollRow, SelectionRow, SourceRow,
 } from '../src/lib/cloud/rows';
 import { PERSONA_CATEGORY_PRIORS } from '../src/lib/profiles/personas';
 import { createProfile, setActiveProfile } from '../src/lib/profiles/profiles';
 import { currentBackend, isCloudMode, localBackend, setStoreBackend } from '../src/lib/store/backend';
+import { localizedPool } from '../src/lib/catalog/localize';
+import { loadLocationPrefs, saveLocationPrefs, setAnchor, setRadius } from '../src/lib/catalog/location';
+import {
+  SEED_PLACE_IDS, addToSelection, effectiveSelection, removeFromSelection, resetSelection,
+  saveSelection,
+} from '../src/lib/catalog/selection';
+import { defaultLocationPrefs } from '../src/lib/catalog/types';
 
 /* ------------------------------------------------------------------ *
  * 假 gateway：单测一律不打真网，也不 mock supabase-js 的链式 builder
@@ -33,6 +40,8 @@ interface FakeState {
   dishes: DishRow[];
   sources: SourceRow[];
   fetchLog: FetchLogRow[];
+  selection: Set<string>;
+  prefs: LocationPrefsRow | null;
 }
 
 interface FakeGateway extends CloudGateway {
@@ -55,6 +64,8 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     dishes: seed.dishes ?? [],
     sources: seed.sources ?? [],
     fetchLog: seed.fetchLog ?? [],
+    selection: seed.selection ?? new Set<string>(),
+    prefs: seed.prefs ?? null,
   };
   const calls: string[] = [];
   let failures = 0;
@@ -166,6 +177,29 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     async insertFetchLog(row) {
       guard('insertFetchLog');
       db.fetchLog = [row, ...db.fetchLog];
+    },
+
+    async fetchSelection() {
+      return [...db.selection].map((place_id) => ({ place_id }) as SelectionRow);
+    },
+    async replaceSelection(placeIds) {
+      guard(`replaceSelection:${placeIds === null ? 'null' : placeIds.join(',')}`);
+      db.selection = new Set(placeIds ?? []);
+      // 与真库同构：selection_set 住在 prefs 行里，且只有这一个 writer 会动它
+      const base: LocationPrefsRow = db.prefs ?? {
+        source_kind: null, anchor_id: null, lat: null, lng: null, accuracy: null,
+        source_ts: null, radius: 'ALL', last_gps_lat: null, last_gps_lng: null,
+        last_gps_ts: null, selection_set: false,
+      };
+      db.prefs = { ...base, selection_set: placeIds !== null };
+    },
+    async fetchLocationPrefs() {
+      return db.prefs;
+    },
+    async saveLocationPrefs(row: LocationPrefsWrite) {
+      guard('saveLocationPrefs');
+      // 真库是 upsert：只覆盖传进来的列，selection_set 不受影响
+      db.prefs = { selection_set: db.prefs?.selection_set ?? false, ...row };
     },
   };
 }
@@ -550,5 +584,181 @@ describe('store.ts 后端切换', () => {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)!);
     expect(keys.some((k) => k.includes('cloud-1'))).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 6. 池子选择与位置偏好（design/0006、ADR-0008）
+ * ------------------------------------------------------------------ */
+
+describe('云端的池子选择', () => {
+  it('没有行 → null → 池子默认成 15 家种子（老账号升级后不变）', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    expect(store.loadSelection()).toBeNull();
+    expect(effectiveSelection()).toEqual([...SEED_PLACE_IDS]);
+    expect(localizedPool().restaurants).toHaveLength(15);
+  });
+
+  it('改了之后重新登录读回来的是同一份', async () => {
+    const gw = fakeGateway();
+    setStoreBackend(await open(gw));
+
+    addToSelection(['extra-1']);
+    removeFromSelection(SEED_PLACE_IDS[0]);
+    await (currentBackend() as CloudStore).flush();
+
+    const again = await open(gw);
+    expect(again.loadSelection()).toHaveLength(15);
+    expect(again.loadSelection()).toContain('extra-1');
+    expect(again.loadSelection()).not.toContain(SEED_PLACE_IDS[0]);
+  });
+
+  it('显式清空 ≠ 从没选过：空池子重新登录后仍然是空的', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    saveSelection([]);
+    await store.flush();
+    expect(gw.db.selection.size).toBe(0);
+    expect(gw.db.prefs?.selection_set).toBe(true);
+
+    const again = await open(gw);
+    expect(again.loadSelection()).toEqual([]);
+    setStoreBackend(again);
+    expect(effectiveSelection()).toEqual([]);
+    expect(localizedPool().restaurants).toHaveLength(0);
+  });
+
+  it('resetSelection() 抹掉记录 → 重新登录回到 15 家种子', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    saveSelection(['x']);
+    resetSelection();
+    await store.flush();
+    expect(gw.db.prefs?.selection_set).toBe(false);
+
+    const again = await open(gw);
+    expect(again.loadSelection()).toBeNull();
+  });
+
+  it('两个账号的池子选择互不可见', async () => {
+    const gwA = fakeGateway();
+    const gwB = fakeGateway();
+
+    setStoreBackend(await open(gwA));
+    addToSelection(['a-only']);
+    await (currentBackend() as CloudStore).flush();
+
+    setStoreBackend(await open(gwB));
+    expect(effectiveSelection()).toEqual([...SEED_PLACE_IDS]);
+    expect(effectiveSelection()).not.toContain('a-only');
+    addToSelection(['b-only']);
+    await (currentBackend() as CloudStore).flush();
+
+    const backToA = await open(gwA);
+    expect(backToA.loadSelection()).toContain('a-only');
+    expect(backToA.loadSelection()).not.toContain('b-only');
+  });
+
+  it('云模式的选择不落 localStorage（游客态数据不串味）', async () => {
+    const local = createProfile('游客', '🍚');
+    setActiveProfile(local.id);
+    addToSelection(['local-only']);
+
+    setStoreBackend(await open(fakeGateway()));
+    addToSelection(['cloud-only']);
+    await (currentBackend() as CloudStore).flush();
+    expect(effectiveSelection()).toContain('cloud-only');
+    expect(effectiveSelection()).not.toContain('local-only');
+
+    setStoreBackend(null);
+    expect(effectiveSelection()).toContain('local-only');
+    expect(effectiveSelection()).not.toContain('cloud-only');
+  });
+});
+
+describe('云端的位置偏好', () => {
+  it('锚点 / 半径 / lastGps 往返不丢（时间戳过 timestamptz 也不丢精度）', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    const ts = Date.parse('2026-09-26T04:05:06.007Z');
+    saveLocationPrefs({
+      source: { kind: 'gps', lat: 43.77, lng: -79.41, accuracy: 35, ts },
+      radius: 'NEAR',
+      lastGps: { lat: 43.77, lng: -79.41, ts },
+    });
+    await store.flush();
+
+    const again = await open(gw);
+    expect(again.loadLocationPrefs()).toEqual({
+      source: { kind: 'gps', lat: 43.77, lng: -79.41, accuracy: 35, ts },
+      radius: 'NEAR',
+      lastGps: { lat: 43.77, lng: -79.41, ts },
+    });
+  });
+
+  it('锚点来源往返；半径默认 ALL', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+    setAnchor('unionville');
+    await store.flush();
+
+    const again = await open(gw);
+    expect(again.loadLocationPrefs().source).toMatchObject({ kind: 'anchor', id: 'unionville' });
+    expect(again.loadLocationPrefs().radius).toBe('ALL');
+  });
+
+  it('写位置偏好不会把 selection_set 抹掉（两个 writer 各写自己的列）', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    saveSelection([]);          // selection_set = true
+    setRadius('WALK');          // 只写位置列
+    await store.flush();
+
+    expect(gw.db.prefs?.selection_set).toBe(true);
+    expect(gw.db.prefs?.radius).toBe('WALK');
+    const again = await open(gw);
+    expect(again.loadSelection()).toEqual([]);
+  });
+
+  it('两个账号的位置偏好互不可见', async () => {
+    const gwA = fakeGateway();
+    const gwB = fakeGateway();
+
+    const a = await open(gwA);
+    setStoreBackend(a);
+    setRadius('WALK');
+    await a.flush();
+
+    const b = await open(gwB);
+    setStoreBackend(b);
+    expect(loadLocationPrefs().radius).toBe('ALL');
+  });
+
+  it('新表还没迁移（读报错）→ 照常进得去，按「从没选过」处理', async () => {
+    const gw = fakeGateway();
+    gw.fetchSelection = async () => {
+      throw new Error('relation "user_pool_selection" does not exist');
+    };
+    gw.fetchLocationPrefs = async () => {
+      throw new Error('relation "user_location_prefs" does not exist');
+    };
+
+    const store = await open(gw);
+    setStoreBackend(store);
+    expect(store.loadSelection()).toBeNull();
+    expect(store.loadLocationPrefs()).toEqual(defaultLocationPrefs());
+    expect(localizedPool().restaurants).toHaveLength(15);
   });
 });

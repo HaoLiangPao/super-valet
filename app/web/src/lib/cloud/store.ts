@@ -9,17 +9,21 @@ import {
   feedbackToRow,
   fetchLogToRow,
   indexBy,
+  locationPrefsToRow,
   rollToRow,
   rowToFeedback,
   rowToFetchLog,
+  rowToLocationPrefs,
   rowToRoll,
   rowsToPool,
+  rowsToSelection,
   rowsToState,
   stateToCategoryRows,
   stateToRestaurantRows,
   toImportPayload,
 } from './rows';
 import type { CategoryRow, RestaurantRow } from './rows';
+import type { LocationPrefs, PoolSelection } from '../catalog/types';
 
 export interface CloudIdentity {
   userId: string;
@@ -61,6 +65,8 @@ export class CloudStore implements StoreBackend {
   private feedbacks: FeedbackRecord[];
   private pool: PoolEntry[];
   private fetchLog: FetchLogEntry[];
+  private selection: PoolSelection;
+  private locationPrefs: LocationPrefs;
 
   /** 上一次成功推上去的行，用来做差分：整份 state 存进来，只推真正变了的行 */
   private lastRestaurantRows: Map<string, RestaurantRow>;
@@ -81,6 +87,8 @@ export class CloudStore implements StoreBackend {
       feedbacks: FeedbackRecord[];
       pool: PoolEntry[];
       fetchLog: FetchLogEntry[];
+      selection: PoolSelection;
+      locationPrefs: LocationPrefs;
     },
   ) {
     this.identity = identity;
@@ -89,6 +97,8 @@ export class CloudStore implements StoreBackend {
     this.feedbacks = snapshot.feedbacks;
     this.pool = snapshot.pool;
     this.fetchLog = snapshot.fetchLog;
+    this.selection = snapshot.selection;
+    this.locationPrefs = snapshot.locationPrefs;
     this.lastRestaurantRows = indexBy(stateToRestaurantRows(this.state), (r) => r.place_id);
     this.lastCategoryRows = indexBy(stateToCategoryRows(this.state), (r) => r.category);
   }
@@ -183,6 +193,32 @@ export class CloudStore implements StoreBackend {
     this.enqueue({
       label: '记录抓取台账',
       run: () => this.gateway.insertFetchLog(row),
+    });
+  }
+
+  loadSelection(): PoolSelection {
+    return this.selection === null ? null : [...this.selection];
+  }
+
+  saveSelection(selection: PoolSelection): void {
+    this.selection = selection === null ? null : [...selection];
+    const payload = this.selection === null ? null : [...this.selection];
+    this.enqueue({
+      label: '池子选择',
+      run: () => this.gateway.replaceSelection(payload),
+    });
+  }
+
+  loadLocationPrefs(): LocationPrefs {
+    return clone(this.locationPrefs);
+  }
+
+  saveLocationPrefs(prefs: LocationPrefs): void {
+    this.locationPrefs = clone(prefs);
+    const row = locationPrefsToRow(this.locationPrefs);
+    this.enqueue({
+      label: '位置偏好',
+      run: () => this.gateway.saveLocationPrefs(row),
     });
   }
 
@@ -282,11 +318,22 @@ export async function openCloudStore(
     }
   }
 
-  const [poolRows, dishRows, sourceRows, fetchLogRows] = await Promise.all([
+  async function optionalOne<T>(what: string, run: () => Promise<T | null>): Promise<T | null> {
+    try {
+      return await run();
+    } catch (err) {
+      console.warn(`[cloud] ${what} 读取失败，按未设置处理（相关表可能还没迁移）`, err);
+      return null;
+    }
+  }
+
+  const [poolRows, dishRows, sourceRows, fetchLogRows, selectionRows, prefsRow] = await Promise.all([
     optional('餐厅池', () => gateway.fetchPool()),
     optional('菜品', () => gateway.fetchDishes()),
     optional('笔记原文', () => gateway.fetchSources()),
     optional('抓取台账', () => gateway.fetchFetchLog()),
+    optional('池子选择', () => gateway.fetchSelection()),
+    optionalOne('位置偏好', () => gateway.fetchLocationPrefs()),
   ]);
 
   const identity: CloudIdentity = {
@@ -304,5 +351,9 @@ export async function openCloudStore(
     feedbacks: feedbackRows.map(rowToFeedback),
     pool: rowsToPool(poolRows, dishRows, sourceRows),
     fetchLog: fetchLogRows.map(rowToFetchLog),
+    // 迁移还没跑时 prefsRow 是 null → selection 也是 null → 池子默认成 15 家种子，
+    // 与目录轮之前的行为一致，用户不会被锁在门外（openCloudStore 的既定原则）
+    selection: rowsToSelection(selectionRows, prefsRow?.selection_set === true),
+    locationPrefs: rowToLocationPrefs(prefsRow),
   });
 }

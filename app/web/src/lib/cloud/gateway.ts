@@ -6,10 +6,13 @@ import type {
   FeedbackRow,
   FetchLogRow,
   ImportPayload,
+  LocationPrefsRow,
+  LocationPrefsWrite,
   PoolRow,
   ProfileRow,
   RestaurantRow,
   RollRow,
+  SelectionRow,
   SourceRow,
 } from './rows';
 
@@ -41,6 +44,18 @@ export interface CloudGateway {
   deleteFromPool(placeId: string): Promise<void>;
   fetchFetchLog(): Promise<FetchLogRow[]>;
   insertFetchLog(row: FetchLogRow): Promise<void>;
+
+  /* ── 池子选择与位置偏好（design/0006、ADR-0008）──────────────── */
+
+  fetchSelection(): Promise<SelectionRow[]>;
+  /**
+   * 整体替换选择列表；传 `null` = 抹掉记录，回到「从没选过」。
+   * 顺序是**先补后删**：中间态永远是目标集的超集，半路失败也不会让用户的池子变小。
+   */
+  replaceSelection(placeIds: string[] | null): Promise<void>;
+  fetchLocationPrefs(): Promise<LocationPrefsRow | null>;
+  /** 只写位置相关的列，不碰 `selection_set`（那是 replaceSelection 的字段） */
+  saveLocationPrefs(row: LocationPrefsWrite): Promise<void>;
 }
 
 interface PostgrestLikeError {
@@ -284,6 +299,74 @@ export function supabaseGateway(client: SupabaseClient, userId: string): CloudGa
       assertOk(
         await client.from('fetch_log').insert({ user_id: userId, ...row }),
         '写入抓取台账失败',
+      );
+    },
+
+    async fetchSelection() {
+      return unwrap<SelectionRow[]>(
+        await client.from('user_pool_selection').select('place_id').eq('user_id', userId),
+        '读取池子选择失败',
+      );
+    },
+
+    async replaceSelection(placeIds: string[] | null) {
+      if (placeIds === null) {
+        assertOk(
+          await client.from('user_pool_selection').delete().eq('user_id', userId),
+          '清空池子选择失败',
+        );
+        assertOk(
+          await client.from('user_location_prefs')
+            .upsert({ user_id: userId, selection_set: false }, { onConflict: 'user_id' }),
+          '标记池子选择失败',
+        );
+        return;
+      }
+
+      // place_id 只可能是 Google 的 [A-Za-z0-9_-]，这里仍然把引号/反斜杠挡掉：
+      // 下面那条 not.in 过滤器是拼字符串的，脏值会把过滤条件整段搞歪。
+      const ids = [...new Set(placeIds.filter((id) => !/["\\]/.test(id)))];
+
+      if (ids.length > 0) {
+        assertOk(
+          await client.from('user_pool_selection').upsert(
+            ids.map((place_id) => ({ user_id: userId, place_id })),
+            { onConflict: 'user_id,place_id' },
+          ),
+          '写入池子选择失败',
+        );
+      }
+
+      const prune = client.from('user_pool_selection').delete().eq('user_id', userId);
+      assertOk(
+        await (ids.length > 0
+          ? prune.not('place_id', 'in', `(${ids.map((id) => `"${id}"`).join(',')})`)
+          : prune),
+        '清理池子选择失败',
+      );
+
+      assertOk(
+        await client.from('user_location_prefs')
+          .upsert({ user_id: userId, selection_set: true }, { onConflict: 'user_id' }),
+        '标记池子选择失败',
+      );
+    },
+
+    async fetchLocationPrefs() {
+      const { data, error } = await client
+        .from('user_location_prefs')
+        .select('source_kind, anchor_id, lat, lng, accuracy, source_ts, radius, last_gps_lat, last_gps_lng, last_gps_ts, selection_set')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) throw new Error(`读取位置偏好失败: ${error.message}`);
+      return (data as LocationPrefsRow | null) ?? null;
+    },
+
+    async saveLocationPrefs(row: LocationPrefsWrite) {
+      assertOk(
+        await client.from('user_location_prefs')
+          .upsert({ user_id: userId, ...row }, { onConflict: 'user_id' }),
+        '写入位置偏好失败',
       );
     },
   };

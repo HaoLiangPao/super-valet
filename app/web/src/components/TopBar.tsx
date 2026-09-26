@@ -9,6 +9,8 @@ const TITLES: Record<string, string> = {
   '/pool': '店铺池',
   '/history': '决策记录',
   '/explore': '探索',
+  '/packages': '套餐',
+  '/settings': '位置与半径',
 };
 
 export default function TopBar() {
