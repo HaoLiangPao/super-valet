@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SEED_RESTAURANTS } from '../src/data/seed-restaurants';
 import { FACTS_TTL_DAYS, isStale } from '../src/lib/places/contract';
 import { summarize } from '../src/lib/places/preview';
-import { RELEVANCE_THRESHOLD, filterRelevant, relevanceScore } from '../src/lib/places/relevance';
+import { RELEVANCE_THRESHOLD, filterRelevant, isCategoryQuery, relevanceScore } from '../src/lib/places/relevance';
 import type { PlaceCandidate, PlaceDetails, Classification } from '../src/lib/places/contract';
 import { allRestaurants, importPreview, isInPool, removeImported, staleEntries } from '../src/lib/store/pool';
 import { createProfile, setActiveProfile } from '../src/lib/profiles/profiles';
@@ -163,5 +163,35 @@ describe('餐厅池合并', () => {
     });
     expect(staleEntries(new Date('2026-09-25T00:00:00Z'))).toHaveLength(1);
     expect(staleEntries(new Date('2026-01-05T00:00:00Z'))).toHaveLength(0);
+  });
+});
+
+describe('类目查询 vs 店名查询（2026-09-26 批量建目录时发现）', () => {
+  it('菜系类目查询跳过名称校验 —— 没有店会叫「韩国烤肉」', () => {
+    expect(isCategoryQuery('韩国烤肉 Markham')).toBe(true);
+    expect(isCategoryQuery('泰国菜 Markham')).toBe(true);
+    expect(isCategoryQuery('steakhouse Markham')).toBe(true);
+    expect(isCategoryQuery('Italian restaurant dinner Markham')).toBe(true);
+  });
+
+  it('带专名的仍算店名查询，必须走校验', () => {
+    expect(isCategoryQuery('云尚米线 Markham')).toBe(false);
+    expect(isCategoryQuery('海底捞 Markham')).toBe(false);
+    expect(isCategoryQuery('Pizza Nova Markham')).toBe(false);
+    expect(isCategoryQuery('阿巴阿巴烧烤 Markham')).toBe(false);
+  });
+
+  it('类目查询下 filterRelevant 全部放行', () => {
+    const { relevant } = filterRelevant('韩国烤肉 Markham', [
+      candidate('Seoul House'), candidate('Kaya Korean BBQ'),
+    ]);
+    expect(relevant).toHaveLength(2);
+  });
+
+  it('店名查询下仍然拦得住不相干的店', () => {
+    const { relevant } = filterRelevant('阿巴阿巴烧烤 Markham', [
+      candidate('南波万Number One'), candidate('BBQ House'),
+    ]);
+    expect(relevant).toHaveLength(0);
   });
 });

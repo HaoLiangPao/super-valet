@@ -84,6 +84,46 @@ export function relevanceScore(queryName: string, candidateName: string): number
   return Math.max(cjkRatio, latinRatio, whole);
 }
 
+/**
+ * 菜系/类目词。用来区分两种搜索意图（2026-09-26 批量建目录时发现）：
+ *
+ *   「云尚米线 Markham」 = 找**某一家店** → 必须做名称校验，
+ *                          否则会把不相干的店当成它推给用户。
+ *   「韩国烤肉 Markham」 = 按**菜系浏览**  → 没有餐厅会叫这个名字，
+ *                          做名称校验会全军覆没（实测 9 个类目查询全被误杀）。
+ *
+ * 判据：去掉城市词和类目词之后**还剩下东西**的，才算店名查询。
+ */
+const CATEGORY_WORDS = [
+  // 中文类目
+  '火锅', '烧烤', '串串', '烤肉', '川菜', '湘菜', '粤菜', '小炒', '烧腊', '茶餐厅',
+  '东北菜', '江浙菜', '上海菜', '米线', '牛肉面', '拉面', '拉条子', '饺子', '包子',
+  '早茶', '点心', '麻辣烫', '黄焖鸡', '日料', '寿司', '刺身', '居酒屋', '韩餐',
+  '韩国', '韩式', '炸鸡', '越南粉', '泰国菜', '泰餐', '印度菜', '马来西亚菜',
+  '中餐', '西餐', '快餐', '甜品', '奶茶', '咖啡', '自助餐', '海鲜', '餐厅', '美食',
+  // 英文类目
+  'restaurant', 'cuisine', 'food', 'dinner', 'lunch', 'brunch', 'breakfast',
+  'italian', 'steakhouse', 'steak', 'pizza', 'burger', 'mediterranean', 'greek',
+  'mexican', 'shawarma', 'seafood', 'pub', 'bbq', 'ribs', 'bistro', 'french',
+  'sushi', 'ramen', 'izakaya', 'korean', 'thai', 'indian', 'vietnamese', 'pho',
+  'malaysian', 'chinese', 'japanese', 'noodle', 'dumpling', 'hotpot', 'grill',
+  'dim', 'sum', 'taiwanese', 'cantonese', 'northern', 'buffet', 'kitchen', 'bar',
+  'asian', 'western', 'halal', 'vegetarian', 'bakery', 'dessert', 'cafe',
+];
+
+/**
+ * 这个查询是「按菜系浏览」而不是「找某一家店」吗？
+ * 是的话跳过名称校验，直接信任 Places 的排序。
+ */
+export function isCategoryQuery(query: string): boolean {
+  let rest = query.toLowerCase();
+  for (const w of [...CATEGORY_WORDS, ...Array.from(STOPWORDS)]) {
+    rest = rest.split(w).join(' ');
+  }
+  // 残留里还有中文字或 ≥2 位的字母数字，就说明带了专名
+  return !/[\u3400-\u4dbf\u4e00-\u9fff]/.test(rest) && !/[a-z0-9]{2,}/.test(rest);
+}
+
 /** 低于这个分就认为「不是用户要找的那家」 */
 export const RELEVANCE_THRESHOLD = 0.5;
 
@@ -98,6 +138,10 @@ export function filterRelevant(
   candidates: PlaceCandidate[],
   threshold = RELEVANCE_THRESHOLD,
 ): RelevanceResult {
+  // 按菜系浏览：没有店会叫「韩国烤肉」，名称校验在这里只会帮倒忙
+  if (isCategoryQuery(queryName)) {
+    return { relevant: candidates, rejected: [] };
+  }
   const scored = candidates.map((c) => ({ c, score: relevanceScore(queryName, c.name) }));
   return {
     relevant: scored.filter((s) => s.score >= threshold)
