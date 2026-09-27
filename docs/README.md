@@ -17,6 +17,7 @@
 | 0005 | [EXPLORE 页：按店名或粘贴笔记导入餐厅](design/0005-explore-import.md) | ✅ accepted | claude-opus-5 | 2026-09-20 |
 | 0006 | [餐厅目录、预设套餐、GPS 半径与池子管理](design/0006-catalog-packages-and-location.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
 | 0007 | [界面语言支持：默认简体中文，支持英文](design/0007-i18n.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
+| 0008 | [路线图：池子引导、月度刷新与雷达重扫、歇业归档、行为统计](design/0008-refresh-archive-and-stats.md) | ✅ accepted | claude-opus-5 | 2026-09-27 |
 
 ## Architecture Decisions (ADR)
 
@@ -46,4 +47,4 @@
 
 ---
 
-共 19 篇文档 · 索引生成于 2026-09-26 · 由 `scripts/gen_docs_index.py` 维护
+共 20 篇文档 · 索引生成于 2026-09-27 · 由 `scripts/gen_docs_index.py` 维护
