@@ -1,5 +1,6 @@
 import { SEED_RESTAURANTS, haversineKm, toBucket } from '@/data/seed-restaurants';
 import type { Restaurant } from '@/lib/engine/types';
+import type { CatalogRestaurant } from '@/lib/catalog/availability';
 import type {
   Classification,
   DishMention,
@@ -33,7 +34,7 @@ export function toRestaurant(
   details: PlaceDetails,
   classification: Classification,
   anchor: { lat: number; lng: number } = IMPORT_ANCHOR,
-): Restaurant {
+): CatalogRestaurant {
   const { distanceKm, bucket } = distanceFrom(details.lat, details.lng, anchor);
   return {
     // ── 事实：只能来自 Places（design/0005 §4.2）
@@ -48,6 +49,9 @@ export function toRestaurant(
     ratingCount: details.ratingCount,
     closedDays: details.closedDays,
     serviceWindows: details.serviceWindows,
+    // 可用性（ADR-0009）：Places 没给（= 绝大多数店）就不带这个字段，
+    // 下游按 OPERATIONAL 处理。它**不影响能不能导入**，只影响提不提醒用户。
+    ...(details.businessStatus ? { businessStatus: details.businessStatus } : {}),
     // ── 分类：LLM / 规则表，用户可改
     primary: classification.primary,
     tags: classification.tags,
@@ -96,6 +100,9 @@ export function summarize(
     details.closedDays.length > 0 ? `周${details.closedDays.join('')}休` : '无固定休',
     details.dineIn ? '有堂食' : '纯外带',
   ];
+  // 摘要要能在 Supabase 里一眼看出「这家店当时就已经不营业了」
+  if (details.businessStatus === 'CLOSED_PERMANENTLY') parts.push('⚠️永久停业');
+  if (details.businessStatus === 'CLOSED_TEMPORARILY') parts.push('⚠️临时停业');
   if (dishCount > 0) parts.push(`菜品${dishCount}道`);
   if (demo) parts.push('演示数据');
   return parts.join(' · ');

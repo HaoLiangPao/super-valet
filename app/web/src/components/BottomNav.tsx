@@ -3,15 +3,19 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const TABS = [
-  { href: '/', glyph: '◎', label: '摇' },
-  { href: '/pool', glyph: '▤', label: '池' },
-  { href: '/history', glyph: '▦', label: '记录' },
-  { href: '/explore', glyph: '✦', label: '探索' },
-] as const;
+import { useT } from '@/lib/i18n';
+import type { MessageKey } from '@/lib/i18n';
+
+const TABS: { href: string; glyph: string; labelKey: MessageKey }[] = [
+  { href: '/', glyph: '◎', labelKey: 'nav.roll' },
+  { href: '/pool', glyph: '▤', labelKey: 'nav.pool' },
+  { href: '/history', glyph: '▦', labelKey: 'nav.history' },
+  { href: '/explore', glyph: '✦', labelKey: 'nav.explore' },
+];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30">
@@ -26,7 +30,7 @@ export default function BottomNav() {
               style={{ color: active ? 'var(--color-accent-700)' : 'var(--color-neutral-500)' }}
             >
               <span className="tab-glyph">{tab.glyph}</span>
-              <span className="tab-label">{tab.label}</span>
+              <span className="tab-label">{t(tab.labelKey)}</span>
             </Link>
           );
         })}

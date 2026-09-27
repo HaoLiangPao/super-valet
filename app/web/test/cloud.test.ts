@@ -8,11 +8,12 @@ import type { EngineState, FeedbackRecord, RollRecord } from '../src/lib/engine/
 import { CloudStore, openCloudStore } from '../src/lib/cloud/store';
 import type { CloudGateway } from '../src/lib/cloud/gateway';
 import {
-  changedRows, feedbackToRow, indexBy, rollToRow, rowToFeedback, rowToRoll, rowsToState,
+  archiveToRow, changedRows, factRowToRestaurant, feedbackToRow, indexBy, restaurantToFactRow,
+  rollToRow, rowToArchive, rowToFeedback, rowToRoll, rowsToState,
   stateToCategoryRows, stateToRestaurantRows,
 } from '../src/lib/cloud/rows';
 import type {
-  CategoryRow, DishRow, FeedbackRow, FetchLogRow, LocationPrefsRow, LocationPrefsWrite,
+  ArchiveRow, CategoryRow, DishRow, FeedbackRow, FetchLogRow, LocationPrefsRow, LocationPrefsWrite,
   PoolRow, ProfileRow, RestaurantRow, RollRow, SelectionRow, SourceRow,
 } from '../src/lib/cloud/rows';
 import { PERSONA_CATEGORY_PRIORS } from '../src/lib/profiles/personas';
@@ -25,6 +26,10 @@ import {
   saveSelection,
 } from '../src/lib/catalog/selection';
 import { defaultLocationPrefs } from '../src/lib/catalog/types';
+import {
+  archiveRestaurant, archivedEntries, isArchived, poolWithArchived, restoreFromArchive,
+} from '../src/lib/catalog/archive';
+import { SEED_RESTAURANTS } from '../src/data/seed-restaurants';
 
 /* ------------------------------------------------------------------ *
  * 假 gateway：单测一律不打真网，也不 mock supabase-js 的链式 builder
@@ -42,6 +47,7 @@ interface FakeState {
   fetchLog: FetchLogRow[];
   selection: Set<string>;
   prefs: LocationPrefsRow | null;
+  archive: Map<string, ArchiveRow>;
 }
 
 interface FakeGateway extends CloudGateway {
@@ -66,6 +72,7 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     fetchLog: seed.fetchLog ?? [],
     selection: seed.selection ?? new Set<string>(),
     prefs: seed.prefs ?? null,
+    archive: seed.archive ?? new Map(),
   };
   const calls: string[] = [];
   let failures = 0;
@@ -200,6 +207,21 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
       guard('saveLocationPrefs');
       // 真库是 upsert：只覆盖传进来的列，selection_set 不受影响
       db.prefs = { selection_set: db.prefs?.selection_set ?? false, ...row };
+    },
+
+    async fetchArchive() {
+      // 与真库同构：按 archived_at 倒序（gateway 里显式排了序）
+      return [...db.archive.values()]
+        .sort((a, b) => b.archived_at.localeCompare(a.archived_at));
+    },
+    async upsertArchive(row: ArchiveRow) {
+      guard(`upsertArchive:${row.place_id}`);
+      // 主键是 (user_id, place_id)：重复归档是覆盖，不是第二行（已在真库验证）
+      db.archive.set(row.place_id, row);
+    },
+    async deleteArchive(placeId: string) {
+      guard(`deleteArchive:${placeId}`);
+      db.archive.delete(placeId);
     },
   };
 }
@@ -760,5 +782,173 @@ describe('云端的位置偏好', () => {
     expect(store.loadSelection()).toBeNull();
     expect(store.loadLocationPrefs()).toEqual(defaultLocationPrefs());
     expect(localizedPool().restaurants).toHaveLength(15);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 9. 归档集合（ADR-0009）
+ * ------------------------------------------------------------------ */
+
+describe('归档的行映射', () => {
+  it('ArchiveEntry ↔ 行往返不丢信息', () => {
+    const entry = {
+      placeId: 'p1',
+      archivedAt: '2026-09-27T10:00:00.000Z',
+      reason: 'closed_permanently' as const,
+    };
+    expect(rowToArchive(archiveToRow(entry))).toEqual(entry);
+  });
+
+  it('认不出来的 reason 落成 manual，而不是把整条归档丢掉', () => {
+    const row: ArchiveRow = {
+      place_id: 'p1',
+      archived_at: '2026-09-27T10:00:00.000Z',
+      reason: 'auto_closed_by_robot',
+    };
+    expect(rowToArchive(row)).toEqual({
+      placeId: 'p1',
+      archivedAt: '2026-09-27T10:00:00.000Z',
+      reason: 'manual',
+    });
+  });
+
+  it('business_status 往返；列为空 → 字段缺失（下游按 OPERATIONAL）', () => {
+    const base = SEED_RESTAURANTS[0];
+    const closed = { ...base, businessStatus: 'CLOSED_PERMANENTLY' as const };
+
+    expect(restaurantToFactRow(closed).business_status).toBe('CLOSED_PERMANENTLY');
+    expect(factRowToRestaurant(restaurantToFactRow(closed)).businessStatus)
+      .toBe('CLOSED_PERMANENTLY');
+
+    // 既有数据（种子 / 目录）没有这个字段 → 列写 null，读回来也没有这个字段
+    expect(restaurantToFactRow(base).business_status).toBeNull();
+    expect(factRowToRestaurant(restaurantToFactRow(base))).not.toHaveProperty('businessStatus');
+  });
+});
+
+describe('云模式的归档', () => {
+  it('归档 → 落库；重开账号还在（幂等覆盖，不长出第二行）', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    const placeId = SEED_PLACE_IDS[0];
+    archiveRestaurant(placeId, 'closed_temporarily');
+    archiveRestaurant(placeId, 'closed_permanently');   // 用户改判
+    await store.flush();
+
+    expect(gw.db.archive.size).toBe(1);
+    expect(gw.db.archive.get(placeId)?.reason).toBe('closed_permanently');
+
+    const again = await open(gw);
+    setStoreBackend(again);
+    expect(isArchived(placeId)).toBe(true);
+    expect(localizedPool().restaurants).toHaveLength(14);
+    expect(localizedPool().filteredOut).toBe(0);
+  });
+
+  it('恢复 → 行被删掉，池子回到 15 家', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    const placeId = SEED_PLACE_IDS[3];
+    archiveRestaurant(placeId, 'manual');
+    await store.flush();
+    expect(gw.db.archive.size).toBe(1);
+
+    restoreFromArchive(placeId);
+    await store.flush();
+    expect(gw.db.archive.size).toBe(0);
+    expect(localizedPool().restaurants).toHaveLength(15);
+  });
+
+  it('两个账号的归档互不可见', async () => {
+    const gwA = fakeGateway();
+    const gwB = fakeGateway();
+
+    const a = await open(gwA);
+    setStoreBackend(a);
+    archiveRestaurant(SEED_PLACE_IDS[0], 'closed_permanently');
+    await a.flush();
+
+    const b = await open(gwB);
+    setStoreBackend(b);
+    expect(archivedEntries()).toEqual([]);
+    expect(localizedPool().restaurants).toHaveLength(15);
+    expect(gwB.db.archive.size).toBe(0);
+  });
+
+  it('统计全集包含归档的店（云端读回来之后也一样）', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+    const placeId = SEED_PLACE_IDS[2];
+    archiveRestaurant(placeId, 'closed_permanently');
+    await store.flush();
+
+    const again = await open(gw);
+    setStoreBackend(again);
+    const universe = poolWithArchived();
+    expect(universe.restaurants).toHaveLength(15);
+    expect(universe.restaurants.some((r) => r.placeId === placeId)).toBe(true);
+    expect(universe.archived.get(placeId)?.reason).toBe('closed_permanently');
+  });
+
+  it('游客态与云账号的归档互不污染（登出后本机归档原样）', async () => {
+    // 游客态先归档一家
+    const guest = createProfile('游客', '🍚');
+    setActiveProfile(guest.id);
+    const guestArchived = SEED_PLACE_IDS[0];
+    archiveRestaurant(guestArchived, 'manual');
+    expect(localBackend.loadArchive().map((e) => e.placeId)).toEqual([guestArchived]);
+
+    // 登录：云账号一条归档都没有
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+    expect(archivedEntries()).toEqual([]);
+    const cloudArchived = SEED_PLACE_IDS[1];
+    archiveRestaurant(cloudArchived, 'closed_permanently');
+    await store.flush();
+    expect(gw.db.archive.size).toBe(1);
+    expect(isCloudMode()).toBe(true);
+
+    // 登出：本机那条还在，云端那条没漏进来
+    setStoreBackend(null);
+    expect(archivedEntries().map((e) => e.placeId)).toEqual([guestArchived]);
+    expect(localBackend.loadArchive()).toHaveLength(1);
+  });
+
+  it('0004 还没迁移（读归档报错）→ 照常进得去，按「没有归档」处理', async () => {
+    const gw = fakeGateway();
+    gw.fetchArchive = async () => {
+      throw new Error('relation "user_archived_restaurants" does not exist');
+    };
+
+    const store = await open(gw);
+    setStoreBackend(store);
+    expect(store.loadArchive()).toEqual([]);
+    // 宁可多摇出一家已归档的店，也不能让人登录失败
+    expect(localizedPool().restaurants).toHaveLength(15);
+  });
+
+  it('归档写入失败不影响本轮使用，恢复网络后补落库', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    gw.setFailing(true);
+    archiveRestaurant(SEED_PLACE_IDS[1], 'closed_permanently');
+    await store.flush();
+    // 内存态立刻正确：用户点了归档，界面上就该少一家
+    expect(localizedPool().restaurants).toHaveLength(14);
+    expect(gw.db.archive.size).toBe(0);
+
+    gw.setFailing(false);
+    archiveRestaurant(SEED_PLACE_IDS[2], 'manual');
+    await store.flush();
+    // 排队里那条被补落库
+    expect(gw.db.archive.size).toBe(2);
   });
 });

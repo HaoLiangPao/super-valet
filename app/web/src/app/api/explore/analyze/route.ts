@@ -1,5 +1,6 @@
 import type { AnalyzeResponse } from '@/lib/places/contract';
 import { MAX_NOTE_CHARS } from '@/lib/places/contract';
+import { tagUpstreamCode } from '@/lib/places/errors';
 import { readJsonBody, requireString, withApiErrors } from '@/lib/places/http';
 import { resolveProviders } from '@/lib/places/providers';
 
@@ -22,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     const { analyzer, analyzerDemo } = resolveProviders();
-    const extraction = await analyzer.extractCandidates(text);
+    const extraction = await tagUpstreamCode(analyzer.extractCandidates(text), 'llm.unavailable');
 
     const payload: AnalyzeResponse = { ...extraction, demo: analyzerDemo };
     return Response.json(payload);

@@ -5,6 +5,8 @@ import type { EngineState, FeedbackRecord, Restaurant, RollRecord } from '../eng
 import type { DishMention, FetchLogEntry } from '../places/contract';
 import { defaultLocationPrefs } from '../catalog/types';
 import type { LocationPrefs, PoolSelection } from '../catalog/types';
+import { sanitizeArchive } from '../catalog/availability';
+import type { ArchiveEntry, CatalogRestaurant } from '../catalog/availability';
 
 /**
  * 存储后端抽象（ADR-0006）。
@@ -53,6 +55,21 @@ export interface StoreBackend {
   /** 位置与半径偏好；没设过时返回 `defaultLocationPrefs()` */
   loadLocationPrefs(): LocationPrefs;
   saveLocationPrefs(prefs: LocationPrefs): void;
+
+  /* ── 归档集合（ADR-0009）────────────────────────────────────────── */
+
+  /**
+   * 归档的店 —— **还在你的世界里，只是去不了了**。
+   *
+   * 与 selection 的关系：归档是**另一个集合**，不动 selection。
+   *   摇一摇   = selection − 归档（`catalog/localize.ts`）
+   *   统计     = selection ∪ 归档（`catalog/archive.ts` 的 `poolWithArchived()`）
+   * 所以「归档 → 恢复」是无损往返，而「移除」才是真的从 selection 拿掉。
+   */
+  loadArchive(): ArchiveEntry[];
+  /** 幂等：同一个 placeId 再归档一次 = 覆盖原因与时间，不会出现两条 */
+  addToArchive(entry: ArchiveEntry): void;
+  removeFromArchive(placeId: string): void;
 }
 
 /**
@@ -64,7 +81,8 @@ export interface StoreBackend {
  * 这个形状是两个后端共同的运行时视图。
  */
 export interface PoolEntry {
-  restaurant: Restaurant;
+  /** 带可用性状态的餐厅事实（ADR-0009）；`businessStatus` 缺失按 OPERATIONAL */
+  restaurant: CatalogRestaurant;
   /** 与笔记一起抽到的菜品；按店名搜进来的为空数组 */
   dishes: DishMention[];
   addedAt: string;
@@ -181,6 +199,18 @@ export const localBackend: StoreBackend = {
   },
   saveLocationPrefs(prefs) {
     write('location.v1', prefs);
+  },
+
+  loadArchive() {
+    return sanitizeArchive(read<unknown>('archive.v1', []));
+  },
+  addToArchive(entry) {
+    // 最近归档的排最前面 —— 与云端 `order('archived_at', desc)` 一致，
+    // 两个后端的归档列表展示次序因此相同（同 fetchlog 的约定）
+    write('archive.v1', [entry, ...this.loadArchive().filter((e) => e.placeId !== entry.placeId)]);
+  },
+  removeFromArchive(placeId) {
+    write('archive.v1', this.loadArchive().filter((e) => e.placeId !== placeId));
   },
 
   loadFetchLog() {

@@ -23,6 +23,32 @@ export interface PlaceCandidate {
   primaryType?: string;
   rating?: number;
   ratingCount?: number;
+  /** 缺失 = Places 没给，按 `OPERATIONAL` 处理（ADR-0009）；S4 的「新发现」据此过滤 */
+  businessStatus?: BusinessStatus;
+}
+
+/**
+ * 可用性状态（ADR-0009）—— 直接取 Places 的 `businessStatus`，不加工。
+ *
+ * 只有这三个取值有意义；Places 文档里的 `BUSINESS_STATUS_UNSPECIFIED` 与
+ * 「字段整个缺失」在我们这边是同一件事：**按 OPERATIONAL 处理**。
+ * 理由写在 ADR-0009：宁可推荐一家可能关门的店，也不要因为数据缺失把好店藏起来。
+ */
+export type BusinessStatus = 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY';
+
+export const BUSINESS_STATUSES: readonly BusinessStatus[] = [
+  'OPERATIONAL', 'CLOSED_TEMPORARILY', 'CLOSED_PERMANENTLY',
+];
+
+/**
+ * 任何来路不明的值 → 合法的 `BusinessStatus`。
+ * 认不出来一律 `OPERATIONAL`（含 undefined / null / 拼错 / Places 新增的枚举值）。
+ * 这是全项目**唯一**一处决定「未知算什么」的地方，别在别处再写一遍三元判断。
+ */
+export function toBusinessStatus(raw: unknown): BusinessStatus {
+  return typeof raw === 'string' && (BUSINESS_STATUSES as readonly string[]).includes(raw)
+    ? (raw as BusinessStatus)
+    : 'OPERATIONAL';
 }
 
 // ── 2. Places：详情（全部是事实字段）──────────────────────────────────
@@ -40,6 +66,8 @@ export interface PlaceDetails {
   serviceWindows: ServiceWindow[];
   closedDays: number[];
   dineIn: boolean;
+  /** 缺失 = 按 `OPERATIONAL`（ADR-0009）；非 OPERATIONAL 一律只提示、绝不自动归档 */
+  businessStatus?: BusinessStatus;
   primaryType?: string;
   /** 最多 5 条，喂给分类器与菜品抽取；不落库原文之外的加工 */
   reviewSnippets?: string[];

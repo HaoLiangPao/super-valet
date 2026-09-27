@@ -3,6 +3,7 @@ import type {
   PlaceDetails,
   PlaceProvider,
 } from './contract';
+import { toBusinessStatus } from './contract';
 import { ProviderError, NotFoundError } from './errors';
 import { convertOpeningHours } from './hours';
 import type { GoogleOpeningHours } from './hours';
@@ -17,7 +18,7 @@ import type { GoogleOpeningHours } from './hours';
  *
  * mask 里字段的档位（删之前先知道你在省哪一档）：
  *   Essentials  : id / formattedAddress / location
- *   Pro         : displayName / primaryType
+ *   Pro         : displayName / primaryType / businessStatus
  *   Enterprise  : rating / userRatingCount / priceLevel / regularOpeningHours
  *   Ent.+Atmos. : dineIn / editorialSummary / reviews
  *
@@ -36,6 +37,9 @@ const SEARCH_FIELD_MASK = [
   'places.primaryType',
   'places.rating',
   'places.userRatingCount',
+  // ADR-0009：可用性状态。Pro 档字段，而这个 mask 因为 rating 已经落在
+  // Enterprise 档，加它**不抬高计费档**，等于免费。
+  'places.businessStatus',
 ].join(',');
 
 const DETAILS_FIELD_MASK = [
@@ -48,6 +52,8 @@ const DETAILS_FIELD_MASK = [
   'userRatingCount',
   'regularOpeningHours',
   'dineIn',
+  // ADR-0009：同上，Details 已经落在 Enterprise + Atmosphere 档，加它不额外花钱
+  'businessStatus',
   'primaryType',
   'editorialSummary',
   'reviews',
@@ -72,6 +78,7 @@ interface GooglePlaceJson {
   priceLevel?: string;
   regularOpeningHours?: GoogleOpeningHours;
   dineIn?: boolean;
+  businessStatus?: string;
   editorialSummary?: GoogleLocalizedText;
   reviews?: Array<{ text?: GoogleLocalizedText; originalText?: GoogleLocalizedText }>;
 }
@@ -100,6 +107,11 @@ export function toCandidate(place: GooglePlaceJson): PlaceCandidate | null {
     ...(place.primaryType ? { primaryType: place.primaryType } : {}),
     ...(typeof place.rating === 'number' ? { rating: place.rating } : {}),
     ...(typeof place.userRatingCount === 'number' ? { ratingCount: place.userRatingCount } : {}),
+    // 只在 Places 明确给了非 OPERATIONAL 时才带这个字段：
+    // 「没说」与「说了 OPERATIONAL」在下游是同一件事（ADR-0009），不占字节
+    ...(place.businessStatus && toBusinessStatus(place.businessStatus) !== 'OPERATIONAL'
+      ? { businessStatus: toBusinessStatus(place.businessStatus) }
+      : {}),
   };
 }
 
@@ -133,6 +145,10 @@ export function toDetails(place: GooglePlaceJson): PlaceDetails {
     closedDays,
     // 字段缺失按「有堂食」处理（design/0005 §4.3）；Places 只在明确知道时才给 false
     dineIn: place.dineIn !== false,
+    // 同 toCandidate：只在非 OPERATIONAL 时带上（ADR-0009）
+    ...(place.businessStatus && toBusinessStatus(place.businessStatus) !== 'OPERATIONAL'
+      ? { businessStatus: toBusinessStatus(place.businessStatus) }
+      : {}),
     ...(place.primaryType ? { primaryType: place.primaryType } : {}),
     ...(reviewSnippets.length > 0 ? { reviewSnippets } : {}),
     ...(place.editorialSummary?.text ? { editorialSummary: place.editorialSummary.text } : {}),

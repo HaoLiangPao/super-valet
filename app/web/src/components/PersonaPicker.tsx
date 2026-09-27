@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { personaTemplateLabel, useT } from '@/lib/i18n';
 import { PERSONA_TEMPLATES } from '@/lib/profiles/personas';
 
 /**
@@ -19,6 +20,7 @@ export default function PersonaPicker({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   async function choose(personaKey: string | null, emoji: string) {
     if (busy) return;
@@ -35,31 +37,36 @@ export default function PersonaPicker({
   return (
     <div className="flex flex-1 flex-col gap-6 pt-6">
       <div className="fx-pop">
-        <h1 className="font-heading text-[28px] leading-tight tracking-tight">你大概是哪一挂的？</h1>
+        <h1 className="font-heading text-[28px] leading-tight tracking-tight">{t('persona.title')}</h1>
         <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-          {email ? `${email} · 第一次登录` : '第一次登录'}。选一个起点，第一摇就有口味；
-          之后每次反馈都会把它改写成你自己的样子。
+          {t('persona.desc', {
+            prefix: email
+              ? t('persona.firstLogin.withEmail', { email })
+              : t('persona.firstLogin.noEmail'),
+          })}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {PERSONA_TEMPLATES.map((t, i) => (
+        {PERSONA_TEMPLATES.map((tpl, i) => (
           <button
-            key={t.key}
+            key={tpl.key}
             type="button"
             disabled={busy !== null}
-            onClick={() => choose(t.key, t.emoji)}
+            onClick={() => choose(tpl.key, tpl.emoji)}
             className="fx-pop flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[28px] transition-transform active:scale-95"
             style={{
               background: 'var(--color-neutral-100)',
               border: '1px solid var(--color-divider)',
               boxShadow: 'var(--shadow-md)',
-              opacity: busy !== null && busy !== t.key ? 0.5 : 1,
+              opacity: busy !== null && busy !== tpl.key ? 0.5 : 1,
               animationDelay: `${i * 60}ms`,
             }}
           >
-            <span className="text-5xl" aria-hidden="true">{t.emoji}</span>
-            <span className="font-heading text-lg">{busy === t.key ? '准备中…' : t.name}</span>
+            <span className="text-5xl" aria-hidden="true">{tpl.emoji}</span>
+            <span className="font-heading text-lg">
+              {busy === tpl.key ? t('persona.preparing') : personaTemplateLabel(t, tpl.key, tpl.name)}
+            </span>
           </button>
         ))}
 
@@ -76,7 +83,7 @@ export default function PersonaPicker({
           }}
         >
           <span className="text-4xl" aria-hidden="true">🍚</span>
-          <span className="text-sm">{busy === 'scratch' ? '准备中…' : '从零开始'}</span>
+          <span className="text-sm">{busy === 'scratch' ? t('persona.preparing') : t('persona.scratchButton')}</span>
         </button>
       </div>
 
@@ -87,7 +94,7 @@ export default function PersonaPicker({
       )}
 
       <p className="text-center text-xs text-muted">
-        模板只是先验，不是标签 —— 摇出来不喜欢就点「换一个」，它学得很快。
+        {t('persona.footerNote')}
       </p>
     </div>
   );

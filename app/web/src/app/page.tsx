@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import Link from 'next/link';
+
 import { swatchFor } from '@/components/cuisineSwatch';
-import { SEED_RESTAURANTS } from '@/data/seed-restaurants';
+import { findInCatalog } from '@/lib/catalog/catalog';
+import { poolRestaurants } from '@/lib/catalog/localize';
+import { selectionSize } from '@/lib/catalog/selection';
 import { CATEGORY_LABELS, categoryOf } from '@/lib/engine/cuisine';
-import { reasonLine, rollOnce } from '@/lib/engine/engine';
+import { rollOnce } from '@/lib/engine/engine';
 import type { RollResult } from '@/lib/engine/engine';
 import { applyFeedback, applySkip, markEaten } from '@/lib/engine/posterior';
 import {
@@ -25,6 +29,8 @@ import type {
   RollRecord,
   SkipReason,
 } from '@/lib/engine/types';
+import { categoryLabel as i18nCategoryLabel, useLocale, useT } from '@/lib/i18n';
+import type { MessageKey, TFunc } from '@/lib/i18n';
 
 type Phase =
   | 'loading'
@@ -39,22 +45,24 @@ type Phase =
 /** 翻牌动效时长，对齐 globals.css 里 ctwFlip 的 1.25s */
 const REVEAL_MS = 1250;
 
-const SKIP_CHIPS: { reason: SkipReason; label: string }[] = [
-  { reason: 'too_far', label: '太远了' },
-  { reason: 'too_pricey', label: '太贵了' },
-  { reason: 'just_ate', label: '刚吃过' },
-  { reason: 'wrong_cuisine', label: '不想吃这个菜系' },
-  { reason: 'closed', label: '关门了' },
-  { reason: 'no_mood', label: '就是不想吃' },
+/** 池子低于这个家数时，摇一摇页在牌堆下方给引导提示（design/0008 §3 S2） */
+const LOW_POOL_THRESHOLD = 20;
+
+const SKIP_CHIPS: { reason: SkipReason; labelKey: MessageKey }[] = [
+  { reason: 'too_far', labelKey: 'skip.too_far' },
+  { reason: 'too_pricey', labelKey: 'skip.too_pricey' },
+  { reason: 'just_ate', labelKey: 'skip.just_ate' },
+  { reason: 'wrong_cuisine', labelKey: 'skip.wrong_cuisine' },
+  { reason: 'closed', labelKey: 'skip.closed' },
+  { reason: 'no_mood', labelKey: 'skip.no_mood' },
 ];
 
+/**
+ * 找店：查全量目录（含用户导入的），不是只查种子——摇一摇的候选现在来自
+ * `poolRestaurants()`（见 `computeRoll`），池子里任何一家都要能被找回来。
+ */
 function findRestaurant(placeId: string): Restaurant | undefined {
-  return SEED_RESTAURANTS.find((r) => r.placeId === placeId);
-}
-
-function categoryLabel(r: Restaurant): string {
-  const cat = categoryOf(r);
-  return CATEGORY_LABELS[cat] ?? cat;
+  return findInCatalog(placeId) ?? undefined;
 }
 
 function mapsUrlFor(name: string, address: string): string {
@@ -69,26 +77,76 @@ function prefersReducedMotion(): boolean {
     && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 }
 
+/**
+ * 候选池现在是当前身份的实际池子（selection ∩ catalog，按锚点/半径本地化过），
+ * 不再是硬编码的种子列表——否则套餐/探索加进去的店永远摇不到，S2 的
+ * 「加个套餐」引导就是一句空话（本轮的自主决定，交付报告里详述）。
+ */
 function computeRoll(
   currentState: EngineState,
   exclude: Set<string>,
 ): RollResult | null {
   const today = epochDay();
   const weekday = new Date().getDay();
-  return rollOnce(SEED_RESTAURANTS, currentState, DINNER, today, weekday, exclude);
+  return rollOnce(poolRestaurants(), currentState, DINNER, today, weekday, exclude);
+}
+
+/**
+ * `reasonLine()` 原实现在不可改的 `src/lib/engine/engine.ts` 里，只产出中文——
+ * 这里在展示层原样复刻同一套判断逻辑换成 `t()`（engine 冻结，locale 相关
+ * 文案只能在调用方重建，design/0007 §4）。
+ */
+function localizedReasonLine(state: EngineState, pick: Restaurant, day: number, t: TFunc): string {
+  const last = state.lastEatenDay[pick.placeId];
+  const parts: string[] = [];
+  if (last === undefined) {
+    parts.push(t('home.reason.neverTried'));
+  } else {
+    const d = day - last;
+    if (d >= 14) {
+      const weeks = Math.floor(d / 7);
+      parts.push(weeks === 1 ? t('home.reason.weekAgo') : t('home.reason.weeksAgo', { weeks }));
+    } else {
+      parts.push(d === 1 ? t('home.reason.dayAgo') : t('home.reason.daysAgo', { days: d }));
+    }
+  }
+  if (pick.rating >= 4.5) parts.push(t('home.reason.googleRating', { rating: pick.rating }));
+  if (pick.distanceKm <= 2.5) parts.push(t('home.reason.nearby'));
+  return parts.join(' · ');
 }
 
 function RestaurantFacts({ r, inverted = false }: { r: Restaurant; inverted?: boolean }) {
+  const t = useT();
   return (
     <div
       className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
       style={{ color: inverted ? 'inherit' : 'var(--color-neutral-700)', opacity: inverted ? 0.9 : 1 }}
     >
       <span>
-        ★ {r.rating.toFixed(1)}（{r.ratingCount}）
+        ★ {r.rating.toFixed(1)}{t('common.parenCount', { count: r.ratingCount })}
       </span>
       {r.priceLevel != null && <span>{'$'.repeat(r.priceLevel)}</span>}
       <span>{r.distanceKm} km</span>
+    </div>
+  );
+}
+
+/** S2：池子太小时的引导——不弹窗、不阻断，牌堆下方一行提示 + 两个出口（design/0008 §3） */
+function LowPoolHint({ count }: { count: number }) {
+  const t = useT();
+  return (
+    <div className="fx-rise flex flex-col items-center gap-2.5 px-2 text-center">
+      <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
+        {t('home.lowPoolHint.text', { count })}
+      </p>
+      <div className="flex gap-2.5">
+        <Link href="/packages" className="btn btn-secondary" style={{ height: 38, fontSize: 12.5 }}>
+          {t('pool.emptyPool.viewPackages')}
+        </Link>
+        <Link href="/explore" className="btn btn-secondary" style={{ height: 38, fontSize: 12.5 }}>
+          {t('pool.emptyPool.explore')}
+        </Link>
+      </div>
     </div>
   );
 }
@@ -100,19 +158,20 @@ function ReasonSheet({
   onPick: (reason: SkipReason) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <>
       <div className="sheet-backdrop" onClick={onClose} />
       <div className="sheet-panel fx-sheet">
         <div className="sheet-grabber" />
-        <div className="font-heading text-[22px] leading-[1.2]">哪儿不对？</div>
+        <div className="font-heading text-[22px] leading-[1.2]">{t('home.reasonSheet.title')}</div>
         <p className="mt-1.5 mb-4 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-          一次多余的点击，换六个干净的特征。不说也行，直接换。
+          {t('home.reasonSheet.desc')}
         </p>
         <div className="mb-4 flex flex-wrap gap-2">
           {SKIP_CHIPS.map((opt) => (
             <button key={opt.reason} type="button" onClick={() => onPick(opt.reason)} className="chip">
-              {opt.label}
+              {t(opt.labelKey)}
             </button>
           ))}
         </div>
@@ -122,7 +181,7 @@ function ReasonSheet({
           className="btn btn-secondary btn-block"
           style={{ height: 46 }}
         >
-          不说，直接换一个
+          {t('home.reasonSheet.skipOther')}
         </button>
       </div>
     </>
@@ -130,8 +189,12 @@ function ReasonSheet({
 }
 
 export default function HomePage() {
+  const t = useT();
+  const { locale } = useLocale();
   const [state, setState] = useState<EngineState | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
+  const [poolCount, setPoolCount] = useState<number | null>(null);
+  const [rollPoolSize, setRollPoolSize] = useState(0);
 
   const [feedbackQueue, setFeedbackQueue] = useState<RollRecord[]>([]);
   const [lockedRoll, setLockedRoll] = useState<RollRecord | null>(null);
@@ -165,6 +228,8 @@ export default function HomePage() {
       );
 
       setState(st);
+      setPoolCount(selectionSize());
+      setRollPoolSize(poolRestaurants().length);
       if (pending.length > 0) {
         setFeedbackQueue(pending);
         setPhase('feedback');
@@ -384,14 +449,14 @@ export default function HomePage() {
 
   if (phase === 'loading' || !state) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
   if (phase === 'feedback') {
     const roll = feedbackQueue[0];
     const restaurant = findRestaurant(roll.restaurantId);
-    const name = restaurant?.name ?? '那家店';
+    const name = restaurant?.name ?? roll.restaurantId;
     return (
       <div className="flex flex-1 flex-col justify-center">
         <div
@@ -400,9 +465,9 @@ export default function HomePage() {
         >
           <div className="flex items-center gap-2 text-[11px] font-bold tracking-[.12em] uppercase" style={{ opacity: 0.6 }}>
             <span className="inline-block h-3 w-3 rounded-[4px]" style={{ background: 'var(--color-accent)' }} />
-            今天吃什么 · 补问
+            {t('home.feedback.eyebrow')}
           </div>
-          <p className="font-heading text-lg">上次的 {name} 怎么样？</p>
+          <p className="font-heading text-lg">{t('home.feedback.question', { name })}</p>
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
@@ -410,7 +475,7 @@ export default function HomePage() {
               className="btn"
               style={{ background: 'var(--color-accent)', color: 'var(--color-neutral-900)', height: 46 }}
             >
-              👍 好吃
+              {t('home.feedback.good')}
             </button>
             <button
               type="button"
@@ -418,7 +483,7 @@ export default function HomePage() {
               className="btn"
               style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
             >
-              😐 一般
+              {t('home.feedback.ok')}
             </button>
             <button
               type="button"
@@ -426,7 +491,7 @@ export default function HomePage() {
               className="btn"
               style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
             >
-              👎 不好吃
+              {t('home.feedback.bad')}
             </button>
             <button
               type="button"
@@ -434,7 +499,7 @@ export default function HomePage() {
               className="btn"
               style={{ background: 'rgba(245,234,216,.14)', color: 'var(--color-neutral-100)', height: 46 }}
             >
-              没去成
+              {t('home.feedback.noShow')}
             </button>
           </div>
         </div>
@@ -446,7 +511,7 @@ export default function HomePage() {
     const restaurant = lockedRoll ? findRestaurant(lockedRoll.restaurantId) : undefined;
     if (!restaurant) {
       return (
-        <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+        <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
       );
     }
     return (
@@ -460,7 +525,7 @@ export default function HomePage() {
             style={{ background: 'rgba(245,234,216,.12)' }}
           />
           <div className="relative text-[11px] font-bold tracking-[.16em] uppercase" style={{ opacity: 0.85 }}>
-            今天就是它了 · Locked
+            {t('home.locked.eyebrow')}
           </div>
           <div className="relative mt-2 font-heading text-[28px] leading-[1.14]">{restaurant.name}</div>
           <div className="relative mt-2 text-[13px]" style={{ opacity: 0.9 }}>{restaurant.address}</div>
@@ -474,7 +539,7 @@ export default function HomePage() {
             className="fx-pop px-1 text-center text-[12.5px] leading-relaxed"
             style={{ color: 'var(--color-neutral-600)', animationDelay: '70ms' }}
           >
-            决策用了 <b>{justAccepted.seconds} 秒</b>，摇了 {justAccepted.rolls} 次。晚 8 点我会来问你好不好吃。
+            {t('home.locked.decisionSummary', { seconds: justAccepted.seconds, rolls: justAccepted.rolls })}
           </p>
         )}
 
@@ -485,7 +550,7 @@ export default function HomePage() {
           className="fx-pop btn btn-primary btn-block text-center"
           style={{ height: 52, fontSize: 17, animationDelay: '130ms' }}
         >
-          在 Google Maps 打开
+          {t('home.locked.openMaps')}
         </a>
 
         <button
@@ -500,7 +565,7 @@ export default function HomePage() {
             animationDelay: '190ms',
           }}
         >
-          重新摇（今晚变卦了）
+          {t('home.locked.reroll')}
         </button>
       </div>
     );
@@ -509,9 +574,9 @@ export default function HomePage() {
   if (phase === 'empty') {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <p style={{ color: 'var(--color-text)' }}>今晚没有开门的候选</p>
+        <p style={{ color: 'var(--color-text)' }}>{t('home.empty.title')}</p>
         <button type="button" onClick={handleGiveUp} className="btn btn-ghost">
-          返回
+          {t('common.back')}
         </button>
       </div>
     );
@@ -559,7 +624,7 @@ export default function HomePage() {
               className="pointer-events-none absolute rounded-full"
               style={{ width: 82, height: 82, background: 'rgba(245,234,216,.12)' }}
             />
-            <span className="relative font-heading text-[36px] leading-none tracking-tight">摇一摇</span>
+            <span className="relative font-heading text-[36px] leading-none tracking-tight">{t('home.idle.rollLabel')}</span>
             <span className="relative text-[11px] font-bold tracking-[.16em] uppercase" style={{ opacity: 0.8 }}>
               Shake the deck
             </span>
@@ -567,8 +632,9 @@ export default function HomePage() {
           </button>
         </div>
         <p className="max-w-[260px] text-center text-[13px] leading-relaxed" style={{ color: 'var(--color-neutral-700)' }}>
-          池子里 {SEED_RESTAURANTS.length} 家，按概率抽样，不取最大值 —— 所以每天不一样。
+          {t('home.idle.poolHint', { count: rollPoolSize })}
         </p>
+        {poolCount !== null && poolCount < LOW_POOL_THRESHOLD && <LowPoolHint count={poolCount} />}
       </div>
     );
   }
@@ -592,14 +658,14 @@ export default function HomePage() {
                 <>
                   <div className="font-heading text-[24px] leading-[1.15]">{currentCard.pick.name}</div>
                   <div className="text-xs" style={{ color: 'var(--color-neutral-600)' }}>
-                    {categoryLabel(currentCard.pick)}
+                    {i18nCategoryLabel(categoryOf(currentCard.pick), locale, CATEGORY_LABELS)}
                   </div>
                 </>
               )}
             </div>
           </div>
         </div>
-        <div className="text-xs tracking-wide" style={{ color: 'var(--color-neutral-600)' }}>翻牌…</div>
+        <div className="text-xs tracking-wide" style={{ color: 'var(--color-neutral-600)' }}>{t('home.rolling.label')}</div>
       </div>
     );
   }
@@ -611,9 +677,9 @@ export default function HomePage() {
     return (
       <div className="flex flex-1 flex-col gap-4 pt-1 pb-3">
         <div className="fx-pop">
-          <div className="font-heading text-[22px] leading-[1.2]">行，你自己挑</div>
+          <div className="font-heading text-[22px] leading-[1.2]">{t('home.downgrade.title')}</div>
           <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-            摇三次都不满意，说明今天我不懂你。三个候选，直接选。
+            {t('home.downgrade.desc')}
           </p>
         </div>
         <div className="flex flex-col gap-3">
@@ -642,7 +708,7 @@ export default function HomePage() {
                 <div className="flex w-full items-baseline justify-between gap-3">
                   <span className="font-heading text-[19px]">{restaurant.name}</span>
                   <span className="tag" style={{ background: swatch.bg, color: swatch.ink }}>
-                    {categoryLabel(restaurant)}
+                    {i18nCategoryLabel(categoryOf(restaurant), locale, CATEGORY_LABELS)}
                   </span>
                 </div>
                 <RestaurantFacts r={restaurant} />
@@ -662,7 +728,7 @@ export default function HomePage() {
             color: 'var(--color-neutral-700)',
           }}
         >
-          今天不吃了，算了
+          {t('home.downgrade.giveUp')}
         </button>
       </div>
     );
@@ -680,10 +746,10 @@ export default function HomePage() {
       >
         <div className="mb-3 flex items-center gap-2">
           <span className="tag" style={{ background: swatch.bg, color: swatch.ink }}>
-            {categoryLabel(pick)}
+            {i18nCategoryLabel(categoryOf(pick), locale, CATEGORY_LABELS)}
           </span>
           <span className="text-[11px] font-semibold" style={{ color: 'var(--color-neutral-600)' }}>
-            第 {currentRollIndex + 1} 摇
+            {t('home.result.rollIndex', { n: currentRollIndex + 1 })}
           </span>
         </div>
         <div className="font-heading text-[28px] leading-[1.12]">{pick.name}</div>
@@ -695,7 +761,7 @@ export default function HomePage() {
           <RestaurantFacts r={pick} />
         </div>
         <p className="fx-drop pt-3 text-[13px] leading-relaxed" style={{ color: 'var(--color-neutral-800)' }}>
-          {reasonLine(state, pick, epochDay())}
+          {localizedReasonLine(state, pick, epochDay(), t)}
         </p>
       </div>
 
@@ -713,7 +779,7 @@ export default function HomePage() {
           className="btn btn-primary"
           style={{ flex: 1.4, height: 52, fontSize: 17 }}
         >
-          就它了
+          {t('home.result.accept')}
         </button>
         <button
           type="button"
@@ -721,7 +787,7 @@ export default function HomePage() {
           className="btn btn-secondary"
           style={{ flex: 1, height: 52, fontSize: 16 }}
         >
-          换一个
+          {t('home.result.reroll')}
         </button>
       </div>
 

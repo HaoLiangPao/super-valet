@@ -3,25 +3,27 @@
 import { useEffect, useState } from 'react';
 
 import { swatchFor } from '@/components/cuisineSwatch';
-import { SEED_RESTAURANTS } from '@/data/seed-restaurants';
+import { findInCatalog } from '@/lib/catalog/catalog';
 import { categoryOf } from '@/lib/engine/cuisine';
 import { exportAll, loadFeedbacks, loadRolls } from '@/lib/engine/store';
 import type { FeedbackRecord, RollRecord, SkipReason } from '@/lib/engine/types';
+import { useT } from '@/lib/i18n';
+import type { MessageKey, TFunc } from '@/lib/i18n';
 
-const SKIP_LABELS: Record<SkipReason, string> = {
-  too_far: '太远了',
-  too_pricey: '太贵了',
-  just_ate: '刚吃过',
-  wrong_cuisine: '不想吃这个菜系',
-  closed: '关门了',
-  no_mood: '就是不想吃',
-  other: '不说',
+const SKIP_KEYS: Record<SkipReason, MessageKey> = {
+  too_far: 'skip.too_far',
+  too_pricey: 'skip.too_pricey',
+  just_ate: 'skip.just_ate',
+  wrong_cuisine: 'skip.wrong_cuisine',
+  closed: 'skip.closed',
+  no_mood: 'skip.no_mood',
+  other: 'skip.other',
 };
 
-const RATING_LABEL: Record<'good' | 'ok' | 'bad', string> = {
-  good: '好吃',
-  ok: '一般',
-  bad: '不好吃',
+const RATING_KEY: Record<'good' | 'ok' | 'bad', MessageKey> = {
+  good: 'history.rating.good',
+  ok: 'history.rating.ok',
+  bad: 'history.rating.bad',
 };
 
 const RATING_EMOJI: Record<'good' | 'ok' | 'bad', string> = {
@@ -30,17 +32,23 @@ const RATING_EMOJI: Record<'good' | 'ok' | 'bad', string> = {
   bad: '👎',
 };
 
+/** 找不到就返回 undefined——全量目录（含用户自己导入的），不只是 15 家种子 */
 function findRestaurant(placeId: string) {
-  return SEED_RESTAURANTS.find((r) => r.placeId === placeId);
+  return findInCatalog(placeId) ?? undefined;
 }
 
-function formatDate(iso: string): { day: string; wd: string } {
+const WEEKDAY_KEYS: MessageKey[] = [
+  'history.weekday.sun', 'history.weekday.mon', 'history.weekday.tue', 'history.weekday.wed',
+  'history.weekday.thu', 'history.weekday.fri', 'history.weekday.sat',
+];
+
+function formatDate(iso: string, t: TFunc): { day: string; wd: string } {
   const d = new Date(iso);
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-  return { day: `${d.getMonth() + 1}/${d.getDate()}`, wd: weekdays[d.getDay()] };
+  return { day: `${d.getMonth() + 1}/${d.getDate()}`, wd: t(WEEKDAY_KEYS[d.getDay()]) };
 }
 
 export default function HistoryPage() {
+  const t = useT();
   const [rolls, setRolls] = useState<RollRecord[] | null>(null);
   const [feedbacks, setFeedbacks] = useState<FeedbackRecord[] | null>(null);
 
@@ -53,7 +61,7 @@ export default function HistoryPage() {
 
   if (!rolls || !feedbacks) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
@@ -80,24 +88,26 @@ export default function HistoryPage() {
         className="flex justify-between rounded-[16px] px-4 py-3 text-sm"
         style={{ background: 'var(--color-neutral-100)', border: '1px solid var(--color-divider)', color: 'var(--color-neutral-800)' }}
       >
-        <span>共 {total} 次决策</span>
-        <span>接受率 {acceptRate}%</span>
+        <span>{t('history.stat.total', { count: total })}</span>
+        <span>{t('history.stat.acceptRate', { rate: acceptRate })}</span>
       </div>
 
       {sorted.length === 0 ? (
-        <p className="mt-12 text-center text-muted">还没有摇过，去「摇」页面开始吧。</p>
+        <p className="mt-12 text-center text-muted">{t('history.empty')}</p>
       ) : (
         <div className="flex flex-col gap-2.5">
           {sorted.map((roll, i) => {
             const restaurant = findRestaurant(roll.restaurantId);
             const name = restaurant?.name ?? roll.restaurantId;
-            const { day, wd } = formatDate(roll.rolledAt);
+            const { day, wd } = formatDate(roll.rolledAt, t);
             const swatch = restaurant ? swatchFor(categoryOf(restaurant)) : { bg: 'var(--color-neutral-400)', ink: 'var(--color-bg)' };
 
             if (roll.action === 'accepted') {
               const fb = feedbacks.find((f) => f.rollId === roll.id);
+              // '没去成' 是写入时的内部标记（page.tsx 的 appendFeedback），不是界面文案，
+              // 存量数据也用它比对，不能跟着 locale 改——展示文字照样走 t()。
               const noShow = fb?.note === '没去成';
-              const ratingLabel = fb ? (noShow ? '没去成' : RATING_LABEL[fb.rating]) : '待反馈';
+              const ratingLabel = fb ? (noShow ? t('history.rating.noShow') : t(RATING_KEY[fb.rating])) : t('history.rating.pending');
               const ratingBg = !fb
                 ? 'var(--color-neutral-300)'
                 : noShow
@@ -135,7 +145,7 @@ export default function HistoryPage() {
                       </span>
                     </div>
                     <div className="mt-1 text-[11.5px]" style={{ color: 'var(--color-neutral-600)' }}>
-                      {roll.meal === 'dinner' ? '晚餐' : '午餐'} · 第 {roll.rollIndex + 1} 摇
+                      {roll.meal === 'dinner' ? t('history.mealDinner') : t('history.mealLunch')} · {t('history.rollIndex', { n: roll.rollIndex + 1 })}
                     </div>
                   </div>
                 </div>
@@ -148,7 +158,11 @@ export default function HistoryPage() {
                 className="fx-pop px-4 text-xs"
                 style={{ color: 'var(--color-neutral-500)', animationDelay: `${Math.min(i, 10) * 25}ms` }}
               >
-                跳过 {name} · {roll.skipReason ? SKIP_LABELS[roll.skipReason] : ''} · {day}
+                {t('history.skipLine', {
+                  name,
+                  reason: roll.skipReason ? t(SKIP_KEYS[roll.skipReason]) : '',
+                  date: day,
+                })}
               </p>
             );
           })}
@@ -161,7 +175,7 @@ export default function HistoryPage() {
         className="btn btn-secondary btn-block mt-2"
         style={{ height: 48 }}
       >
-        导出全部数据 JSON
+        {t('history.export')}
       </button>
     </div>
   );

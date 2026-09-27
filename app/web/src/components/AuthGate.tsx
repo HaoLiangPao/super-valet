@@ -7,6 +7,7 @@ import AccountBadge from '@/components/AccountBadge';
 import AuthPanel from '@/components/AuthPanel';
 import PersonaPicker from '@/components/PersonaPicker';
 import ProfileGate from '@/components/ProfileGate';
+import { useT } from '@/lib/i18n';
 import { supabaseGateway } from '@/lib/cloud/gateway';
 import { openCloudStore } from '@/lib/cloud/store';
 import type { CloudIdentity, CloudStore } from '@/lib/cloud/store';
@@ -21,7 +22,8 @@ type Mode =
   | { kind: 'error'; message: string; userId: string; email: string | null };
 
 function Loading() {
-  return <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>;
+  const t = useT();
+  return <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>;
 }
 
 /**
@@ -46,6 +48,7 @@ function sleep(ms: number): Promise<void> {
  */
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>({ kind: 'loading' });
+  const t = useT();
 
   async function enterCloud(userId: string, email: string | null): Promise<void> {
     const client = getSupabaseClient();
@@ -130,7 +133,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     const { userId, email } = mode;
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <p className="font-heading text-[20px]">云端数据没读出来</p>
+        <p className="font-heading text-[20px]">{t('authgate.error.title')}</p>
         <p className="max-w-[280px] text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
           {mode.message}
         </p>
@@ -144,10 +147,10 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             className="btn btn-primary"
             style={{ height: 44 }}
           >
-            再试一次
+            {t('authgate.error.retry')}
           </button>
           <button type="button" onClick={handleSignOut} className="btn btn-secondary" style={{ height: 44 }}>
-            退出登录
+            {t('authgate.error.signOut')}
           </button>
         </div>
       </div>

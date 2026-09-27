@@ -9,8 +9,14 @@ import { ProviderError, ValidationError } from './errors';
  *   2. **上游错误、堆栈、密钥一律不出响应**，只进服务端日志。
  */
 
-export function errorResponse(message: string, status: number): Response {
-  const body: ApiError = { error: true, message };
+/**
+ * `code`（design/0007 §4）：可选的机读错误码，客户端优先用它查字典。
+ * 这两个函数是 `ProviderError` → HTTP 响应体的唯一收口，
+ * 加 `code` 字段必须动这里；其余 provider 实现（google.ts/openrouter.ts 等）
+ * 本轮不改，它们抛出的 `ProviderError` 没设 code 时这里就只透传中文兜底。
+ */
+export function errorResponse(message: string, status: number, code?: string): Response {
+  const body: ApiError & { code?: string } = code ? { error: true, message, code } : { error: true, message };
   return Response.json(body, { status });
 }
 
@@ -20,7 +26,7 @@ export async function withApiErrors(fn: () => Promise<Response>): Promise<Respon
     return await fn();
   } catch (err) {
     if (err instanceof ProviderError) {
-      return errorResponse(err.userMessage, err.status);
+      return errorResponse(err.userMessage, err.status, err.code);
     }
     // 没预料到的错误：日志里留全貌，响应里只给一句人话
     console.error('[explore] 未处理的错误', err);
@@ -34,10 +40,10 @@ export async function readJsonBody(request: Request): Promise<Record<string, unk
   try {
     parsed = await request.json();
   } catch {
-    throw new ValidationError('请求格式不对');
+    throw new ValidationError('请求格式不对', 'validation.invalid');
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new ValidationError('请求格式不对');
+    throw new ValidationError('请求格式不对', 'validation.invalid');
   }
   return parsed as Record<string, unknown>;
 }
@@ -56,12 +62,13 @@ export function requireString(
   rules: StringFieldRules,
 ): string {
   const raw = body[field];
-  if (typeof raw !== 'string') throw new ValidationError(`请填写${rules.label}`);
+  if (typeof raw !== 'string') throw new ValidationError(`请填写${rules.label}`, 'validation.required');
   const value = raw.trim();
-  if (value.length === 0) throw new ValidationError(`请填写${rules.label}`);
+  if (value.length === 0) throw new ValidationError(`请填写${rules.label}`, 'validation.required');
   if (value.length > rules.maxChars) {
     throw new ValidationError(
       rules.tooLongMessage ?? `${rules.label}太长了，最多 ${rules.maxChars} 个字`,
+      'validation.too_long',
     );
   }
   return value;

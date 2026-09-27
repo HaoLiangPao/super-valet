@@ -2,20 +2,24 @@
 
 import { usePathname } from 'next/navigation';
 
+import { useT } from '@/lib/i18n';
+import type { MessageKey } from '@/lib/i18n';
+
 import ClockBadge from './ClockBadge';
 
-const TITLES: Record<string, string> = {
-  '/': '今天吃什么',
-  '/pool': '店铺池',
-  '/history': '决策记录',
-  '/explore': '探索',
-  '/packages': '套餐',
-  '/settings': '位置与半径',
+const TITLE_KEYS: Record<string, MessageKey> = {
+  '/': 'topbar.title.home',
+  '/pool': 'topbar.title.pool',
+  '/history': 'topbar.title.history',
+  '/explore': 'topbar.title.explore',
+  '/packages': 'topbar.title.packages',
+  '/settings': 'topbar.title.settings',
 };
 
 export default function TopBar() {
   const pathname = usePathname();
-  const title = TITLES[pathname] ?? '今天吃什么';
+  const t = useT();
+  const title = t(TITLE_KEYS[pathname] ?? 'topbar.title.home');
 
   return (
     <div className="flex items-baseline justify-between px-1 pb-2 pr-14">

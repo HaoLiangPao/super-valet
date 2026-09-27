@@ -1,8 +1,10 @@
 import { haversineKm, toBucket } from '@/data/seed-restaurants';
 import type { Restaurant } from '@/lib/engine/types';
+import { archivedPlaceIds } from './archive';
 import { allCatalog, catalogIndex } from './catalog';
 import { loadLocationPrefs, radiusKm, resolveLocation } from './location';
 import { effectiveSelection } from './selection';
+import type { CatalogRestaurant } from './availability';
 import type { LocalizedPool, LocationPrefs } from './types';
 
 /**
@@ -18,16 +20,22 @@ import type { LocalizedPool, LocationPrefs } from './types';
  */
 
 /** 与 `recomputeDistances()` 保持一致：展示用一位小数，分档用未取整的真值 */
-function withDistance(r: Restaurant, km: number): Restaurant {
+function withDistance(r: CatalogRestaurant, km: number): CatalogRestaurant {
   return { ...r, distanceKm: Math.round(km * 10) / 10, bucket: toBucket(km) };
 }
 
 /** 单家店按给定位置重算距离；只动 `distanceKm` / `bucket`，其余字段原样 */
-export function localizeRestaurant(r: Restaurant, at: { lat: number; lng: number }): Restaurant {
+export function localizeRestaurant(
+  r: CatalogRestaurant,
+  at: { lat: number; lng: number },
+): CatalogRestaurant {
   return withDistance(r, haversineKm(at.lat, at.lng, r.lat, r.lng));
 }
 
-export function localizeRestaurants(list: Restaurant[], at: { lat: number; lng: number }): Restaurant[] {
+export function localizeRestaurants(
+  list: CatalogRestaurant[],
+  at: { lat: number; lng: number },
+): CatalogRestaurant[] {
   return list.map((r) => localizeRestaurant(r, at));
 }
 
@@ -39,19 +47,27 @@ export function localizeRestaurants(list: Restaurant[], at: { lat: number; lng: 
  * 两套阈值同源（`RADIUS_KM` 与 `toBucket`），UI 上不会出现「显示 NEAR 却被
  * WALK 半径留下来」这种自相矛盾。
  *
- * `filteredOut` 只统计**因为超出半径**被挡掉的家数；选择记录里指向目录里
- * 已经不存在的店（导入后又删了原始记录）直接跳过，不算进去 —— 那不是半径的错，
- * 提示「放宽半径还能看到 N 家」时把它算进去就是说谎。
+ * `filteredOut` 只统计**因为超出半径**被挡掉的家数。两类店直接跳过、
+ * **不计进 filteredOut** —— 那不是半径的错，提示「放宽半径还能看到 N 家」时
+ * 把它们算进去就是说谎：
+ *   1. 选择记录指向目录里已经不存在的店（导入后又删了原始记录）；
+ *   2. **已归档的店**（ADR-0009）—— 放宽半径它也不会回来，它要的是「恢复」。
+ *      归档几家请问 `archive.ts` 的 `archiveSize()`，别从这里推。
+ *
+ * 归档是这里**唯一**会把店排除在摇一摇之外的可用性机制：`businessStatus` 说
+ * 「永久停业」也照样摇得到，直到用户自己确认归档（ADR-0009：永不自动归档）。
  */
 export function localizedPool(prefs: LocationPrefs = loadLocationPrefs()): LocalizedPool {
   const usedLocation = resolveLocation(prefs);
   const limit = radiusKm(prefs.radius);
   const unlimited = !Number.isFinite(limit);
   const catalog = catalogIndex();
+  const archived = archivedPlaceIds();
 
   const restaurants: Restaurant[] = [];
   let filteredOut = 0;
   for (const placeId of effectiveSelection()) {
+    if (archived.has(placeId)) continue;
     const base = catalog.get(placeId);
     if (!base) continue;
     const km = haversineKm(usedLocation.lat, usedLocation.lng, base.lat, base.lng);
@@ -73,7 +89,10 @@ export function poolRestaurants(prefs?: LocationPrefs): Restaurant[] {
 /**
  * 整个目录的本地化视图（不按 selection、不按半径过滤）。
  * 套餐浏览页与 EXPLORE 要给「还没进池子」的店显示距离，用这个。
+ *
+ * **不过滤归档**：浏览目录时归档的店应该看得见（并标出来），否则用户会以为
+ * 它凭空消失了，然后再导入一遍。要判断请用 `archive.ts` 的 `isArchived()`。
  */
-export function localizedCatalog(prefs: LocationPrefs = loadLocationPrefs()): Restaurant[] {
+export function localizedCatalog(prefs: LocationPrefs = loadLocationPrefs()): CatalogRestaurant[] {
   return localizeRestaurants(allCatalog(), resolveLocation(prefs));
 }

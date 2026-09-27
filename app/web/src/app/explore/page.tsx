@@ -12,11 +12,13 @@ import { rememberLocalImport } from '@/components/explore/localExploreCache';
 import NoteExtractionPanel from '@/components/explore/NoteExtractionPanel';
 import PreviewCard from '@/components/explore/PreviewCard';
 import { CandidateListSkeleton, PreviewCardSkeleton } from '@/components/explore/Skeletons';
+import { useT } from '@/lib/i18n';
 import type { DishMention, ImportPreview, PlaceCandidate } from '@/lib/places/contract';
 
 type View = 'entry' | 'noteResult' | 'candidates' | 'preview' | 'success';
 
 export default function ExplorePage() {
+  const t = useT();
   const [view, setView] = useState<View>('entry');
   const [entryTab, setEntryTab] = useState<EntryTab>('search');
 
@@ -49,7 +51,7 @@ export default function ExplorePage() {
       setCandidates(res.candidates);
       setView('candidates');
     } catch (e) {
-      setError(e instanceof Error ? e.message : '出错了，稍后再试');
+      setError(e instanceof Error ? e.message : t('explore.error.generic'));
     } finally {
       setPending(false);
     }
@@ -73,7 +75,7 @@ export default function ExplorePage() {
       setNoteDishes(res.dishes);
       setView('noteResult');
     } catch (e) {
-      setError(e instanceof Error ? e.message : '出错了，稍后再试');
+      setError(e instanceof Error ? e.message : t('explore.error.generic'));
     } finally {
       setPending(false);
     }
@@ -88,7 +90,7 @@ export default function ExplorePage() {
       setDemo((prev) => prev || res.demo);
       setPreview(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '出错了，稍后再试');
+      setError(e instanceof Error ? e.message : t('explore.error.generic'));
       setView('candidates');
     } finally {
       setPending(false);
@@ -123,7 +125,7 @@ export default function ExplorePage() {
           className="fx-rise rounded-[14px] px-3.5 py-2.5 text-center text-[12px] font-semibold leading-relaxed"
           style={{ background: 'var(--color-accent-200)', color: 'var(--color-accent-800)' }}
         >
-          演示数据 —— 还没配置 API key，这些不是真实结果
+          {t('explore.demoBanner')}
         </div>
       )}
 
@@ -189,7 +191,7 @@ export default function ExplorePage() {
                 className="btn btn-ghost"
                 style={{ alignSelf: 'center' }}
               >
-                换一家看看
+                {t('explore.changeCandidate')}
               </button>
             </>
           )
@@ -198,16 +200,16 @@ export default function ExplorePage() {
       {view === 'success' && preview && (
         <div className="fx-pop flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
           <div className="text-[40px]">🎉</div>
-          <div className="font-heading text-[20px]">加入池子成功</div>
+          <div className="font-heading text-[20px]">{t('explore.success.title')}</div>
           <p className="max-w-[260px] text-[13px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-            {preview.restaurant.name} 现在是你的一员了。
+            {t('explore.success.desc', { name: preview.restaurant.name })}
           </p>
           <div className="mt-2 flex w-full gap-2.5">
             <button type="button" onClick={resetAll} className="btn btn-secondary" style={{ flex: 1, height: 48 }}>
-              再找一家
+              {t('explore.success.again')}
             </button>
             <Link href="/" className="btn btn-primary text-center" style={{ flex: 1, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              去摇一摇
+              {t('explore.success.goRoll')}
             </Link>
           </div>
         </div>

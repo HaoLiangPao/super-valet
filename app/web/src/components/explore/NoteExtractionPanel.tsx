@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
 import type { DishMention } from '@/lib/places/contract';
 
 const SENTIMENT_GLYPH: Record<NonNullable<DishMention['sentiment']>, string> = {
@@ -19,14 +20,16 @@ export default function NoteExtractionPanel({
   onPickQuery: (query: string) => void;
   onBack: () => void;
 }) {
+  const t = useT();
+
   if (queries.length === 0) {
     return (
       <div className="fx-pop flex flex-col items-center gap-3 py-8 text-center">
         <p style={{ color: 'var(--color-neutral-600)' }}>
-          没抽出可定位的店名，笔记里写具体点，或者直接用「找店名」搜
+          {t('explore.noteResult.empty')}
         </p>
         <button type="button" onClick={onBack} className="btn btn-secondary">
-          返回
+          {t('common.back')}
         </button>
       </div>
     );
@@ -36,7 +39,7 @@ export default function NoteExtractionPanel({
     <div className="fx-pop flex flex-col gap-4">
       <div>
         <div className="mb-2 text-[12.5px] font-semibold" style={{ color: 'var(--color-neutral-700)' }}>
-          从笔记里认出这些店，点一个去搜
+          {t('explore.noteResult.pickHint')}
         </div>
         <div className="flex flex-wrap gap-2">
           {queries.map((q) => (
@@ -50,7 +53,7 @@ export default function NoteExtractionPanel({
       {dishes.length > 0 && (
         <div>
           <div className="mb-2 text-[12.5px] font-semibold" style={{ color: 'var(--color-neutral-700)' }}>
-            顺带抽到的菜品提及
+            {t('explore.noteResult.dishHint')}
           </div>
           <div className="flex flex-col gap-1.5">
             {dishes.map((d, i) => (
@@ -83,7 +86,7 @@ export default function NoteExtractionPanel({
           color: 'var(--color-neutral-700)',
         }}
       >
-        换一篇笔记
+        {t('explore.noteResult.newNote')}
       </button>
     </div>
   );

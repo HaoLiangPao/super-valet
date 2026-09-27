@@ -33,6 +33,7 @@
 | 0006 | [试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留](decisions/0006-supabase-accounts-and-cloud-store.md) | 📝 proposed | claude-opus-5 | 2026-09-18 |
 | 0007 | [用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象](decisions/0007-server-runtime-and-providers.md) | 📝 proposed | claude-opus-5 | 2026-09-20 |
 | 0008 | [目录与池子分离；距离改为按当前位置在运行时计算](decisions/0008-catalog-pool-and-runtime-distance.md) | 📝 proposed | claude-opus-5 | 2026-09-26 |
+| 0009 | [归档而不是删除；可用性状态只提示不执行，永不自动归档](decisions/0009-availability-and-archive.md) | 📝 proposed | claude-opus-5 | 2026-09-27 |
 
 ## Research & Notes
 
@@ -47,4 +48,4 @@
 
 ---
 
-共 20 篇文档 · 索引生成于 2026-09-27 · 由 `scripts/gen_docs_index.py` 维护
+共 21 篇文档 · 索引生成于 2026-09-27 · 由 `scripts/gen_docs_index.py` 维护

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
 import { MAX_NOTE_CHARS } from '@/lib/places/contract';
 
 export type EntryTab = 'search' | 'note';
@@ -25,6 +26,7 @@ export default function EntryForm({
   onNoteSubmit: () => void;
   pending: boolean;
 }) {
+  const t = useT();
   const overLimit = note.length > MAX_NOTE_CHARS;
 
   return (
@@ -46,7 +48,7 @@ export default function EntryForm({
               : { color: 'var(--color-neutral-700)' }
           }
         >
-          找店名
+          {t('explore.tab.search')}
         </button>
         <button
           type="button"
@@ -60,7 +62,7 @@ export default function EntryForm({
               : { color: 'var(--color-neutral-700)' }
           }
         >
-          粘贴笔记
+          {t('explore.tab.note')}
         </button>
       </div>
 
@@ -73,11 +75,11 @@ export default function EntryForm({
           }}
         >
           <div className="field">
-            <label htmlFor="explore-query">店名或关键词</label>
+            <label htmlFor="explore-query">{t('explore.search.label')}</label>
             <input
               id="explore-query"
               className="input"
-              placeholder="海底捞 Markham"
+              placeholder={t('explore.search.placeholder')}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               autoComplete="off"
@@ -89,7 +91,7 @@ export default function EntryForm({
             className="btn btn-primary btn-block"
             style={{ height: 48 }}
           >
-            {pending ? '搜索中…' : '搜索'}
+            {pending ? t('explore.search.pending') : t('explore.search.submit')}
           </button>
         </form>
       ) : (
@@ -101,19 +103,19 @@ export default function EntryForm({
           }}
         >
           <div className="field">
-            <label htmlFor="explore-note">粘贴笔记正文</label>
+            <label htmlFor="explore-note">{t('explore.note.label')}</label>
             <textarea
               id="explore-note"
               className="input"
               style={{ minHeight: 150, borderRadius: 20, resize: 'vertical', lineHeight: 1.5 }}
-              placeholder="粘贴小红书 / 大众点评的正文，越具体越好…"
+              placeholder={t('explore.note.placeholder')}
               value={note}
               onChange={(e) => onNoteChange(e.target.value)}
             />
           </div>
           <div className="flex items-center justify-between gap-2 text-[11px]">
             <span style={{ color: 'var(--color-neutral-600)' }}>
-              我们不抓取任何平台，只处理你主动粘贴的文字
+              {t('explore.note.hint')}
             </span>
             <span
               className="flex-none font-semibold"
@@ -124,7 +126,7 @@ export default function EntryForm({
           </div>
           {overLimit && (
             <p className="text-[11.5px] font-semibold" style={{ color: 'var(--color-accent-700)' }}>
-              超过 {MAX_NOTE_CHARS} 字了，剪短一点再试
+              {t('explore.note.overLimit', { max: MAX_NOTE_CHARS })}
             </p>
           )}
           <button
@@ -133,7 +135,7 @@ export default function EntryForm({
             className="btn btn-primary btn-block"
             style={{ height: 48 }}
           >
-            {pending ? '抽取中…' : '抽取店名'}
+            {pending ? t('explore.note.pending') : t('explore.note.submit')}
           </button>
         </form>
       )}

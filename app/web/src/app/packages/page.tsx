@@ -7,8 +7,11 @@ import Link from 'next/link';
 import { allPackages, packageStats } from '@/lib/catalog/packages';
 import { applyPackage } from '@/lib/catalog/selection';
 import type { RestaurantPackage } from '@/lib/catalog/types';
+import { useLocale, useT } from '@/lib/i18n';
 
 export default function PackagesPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const [packages, setPackages] = useState<RestaurantPackage[] | null>(null);
   const [justApplied, setJustApplied] = useState<Set<string>>(new Set());
 
@@ -22,7 +25,7 @@ export default function PackagesPage() {
 
   if (!packages) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
@@ -38,7 +41,7 @@ export default function PackagesPage() {
   return (
     <div className="flex flex-1 flex-col gap-3 pb-3">
       <p className="px-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-        我们挑好的套餐，一键加进池子；之后还能在池子页单独摘掉不合口味的那几家。
+        {t('packages.intro')}
       </p>
 
       {packages.length === 0 && (
@@ -46,7 +49,7 @@ export default function PackagesPage() {
           className="rounded-[16px] p-4 text-center text-[13px]"
           style={{ background: 'var(--color-neutral-100)', color: 'var(--color-neutral-600)' }}
         >
-          暂时没有套餐可用。
+          {t('packages.empty')}
         </div>
       )}
 
@@ -55,6 +58,7 @@ export default function PackagesPage() {
           const stats = packageStats(pkg);
           const full = stats.total > 0 && stats.alreadyInPool >= stats.total;
           const showSuccess = justApplied.has(pkg.id) && full;
+          const desc = locale === 'en' ? pkg.descEn : pkg.descZh;
           return (
             <div key={pkg.id} className="fx-pop" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
               <div className="card elev-sm">
@@ -66,12 +70,12 @@ export default function PackagesPage() {
                     </span>
                   </div>
                   <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-                    {pkg.descZh}
+                    {desc}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="tag tag-accent-2">
-                    共 {stats.total} 家 · 你已有 {stats.alreadyInPool} 家
+                    {t('packages.stats', { total: stats.total, already: stats.alreadyInPool })}
                   </span>
                   <button
                     type="button"
@@ -80,7 +84,7 @@ export default function PackagesPage() {
                     className="btn btn-primary"
                     style={{ height: 40, flex: 'none' }}
                   >
-                    {full ? '已全部在池子里' : '加入池子'}
+                    {full ? t('packages.applied') : t('packages.apply')}
                   </button>
                 </div>
                 {showSuccess && (
@@ -88,9 +92,9 @@ export default function PackagesPage() {
                     className="fx-rise flex items-center justify-between rounded-[12px] px-3 py-2"
                     style={{ background: 'var(--color-accent-2-100)', color: 'var(--color-accent-2-800)' }}
                   >
-                    <span className="text-[12.5px] font-semibold">✓ 已加入池子</span>
+                    <span className="text-[12.5px] font-semibold">{t('packages.appliedBanner')}</span>
                     <Link href="/" className="btn btn-ghost" style={{ height: 28, fontSize: 12 }}>
-                      去摇一摇
+                      {t('packages.goRoll')}
                     </Link>
                   </div>
                 )}

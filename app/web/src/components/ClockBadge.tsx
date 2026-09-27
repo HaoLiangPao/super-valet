@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from 'react';
 
-function slotLabel(hour: number): string {
-  if (hour < 6) return '凌晨';
-  if (hour < 11) return '早';
-  if (hour < 14) return '午';
-  if (hour < 17) return '下午';
-  if (hour < 22) return '晚';
-  return '夜';
+import { useT } from '@/lib/i18n';
+import type { TFunc } from '@/lib/i18n';
+
+function slotKey(hour: number): Parameters<TFunc>[0] {
+  if (hour < 6) return 'clock.slot.dawn';
+  if (hour < 11) return 'clock.slot.morning';
+  if (hour < 14) return 'clock.slot.noon';
+  if (hour < 17) return 'clock.slot.afternoon';
+  if (hour < 22) return 'clock.slot.evening';
+  return 'clock.slot.night';
 }
 
 function pad(n: number): string {
@@ -22,16 +25,17 @@ function pad(n: number): string {
  */
 export default function ClockBadge() {
   const [label, setLabel] = useState('');
+  const t = useT();
 
   useEffect(() => {
     function tick() {
       const now = new Date();
-      setLabel(`${pad(now.getHours())}:${pad(now.getMinutes())} · ${slotLabel(now.getHours())}`);
+      setLabel(`${pad(now.getHours())}:${pad(now.getMinutes())} · ${t(slotKey(now.getHours()))}`);
     }
     const id = setInterval(tick, 30_000);
     Promise.resolve().then(tick);
     return () => clearInterval(id);
-  }, []);
+  }, [t]);
 
   return (
     <span className="text-[11.5px] font-semibold" style={{ color: 'var(--color-neutral-600)' }}>

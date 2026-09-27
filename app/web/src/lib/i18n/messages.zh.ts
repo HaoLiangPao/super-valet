@@ -303,6 +303,14 @@ export const zh = {
   'persona.preparing': '准备中…',
   'persona.scratchButton': '从零开始',
   'persona.footerNote': '模板只是先验，不是标签 —— 摇出来不喜欢就点「换一个」，它学得很快。',
+  // persona 模板名（key 与 lib/profiles/personas.ts 的 PERSONA_TEMPLATES.key 一致；
+  // 该文件不在本轮改动范围内，只能在 i18n 层建对照，见 index.ts 的用法）
+  'persona.template.western': '西餐控',
+  'persona.template.japanese': '日料控',
+  'persona.template.chinese': '中餐控',
+
+  // ── 池子引导（design/0008 §3 S2）───────────────────────────────────
+  'home.lowPoolHint.text': '你的池子只有 {count} 家 —— 加个套餐，或者自己找几家',
 } as const;
 
 export type MessageKey = keyof typeof zh;

@@ -3,26 +3,28 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
+import { useT } from '@/lib/i18n';
+import type { TFunc } from '@/lib/i18n';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 type Tab = 'signin' | 'signup';
 
 /** Supabase 的英文错误信息不适合给试玩用户看，常见的几条翻成人话 */
-function friendlyError(message: string): string {
+function friendlyError(t: TFunc, message: string): string {
   const m = message.toLowerCase();
-  if (m.includes('invalid login credentials')) return '邮箱或密码不对，再试一次。';
+  if (m.includes('invalid login credentials')) return t('auth.error.invalidCreds');
   if (m.includes('already registered') || m.includes('already been registered')) {
-    return '这个邮箱已经注册过了，直接登录就行。';
+    return t('auth.error.alreadyRegistered');
   }
-  if (m.includes('password should be at least')) return '密码至少 6 位。';
+  if (m.includes('password should be at least')) return t('auth.error.passwordTooShort');
   if (m.includes('unable to validate email') || m.includes('invalid format')) {
-    return '邮箱格式不对。';
+    return t('auth.error.badEmail');
   }
   if (m.includes('email rate limit') || m.includes('too many requests')) {
-    return '操作太频繁了，等一会儿再试。';
+    return t('auth.error.rateLimited');
   }
   if (m.includes('signups not allowed') || m.includes('signup is disabled')) {
-    return '当前不开放注册，用 Hao 给你的账号登录。';
+    return t('auth.error.signupDisabled');
   }
   return message;
 }
@@ -46,18 +48,19 @@ export default function AuthPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const t = useT();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
     const client = getSupabaseClient();
     if (!client) {
-      setError('这个环境没有配置 Supabase，只能用游客模式。');
+      setError(t('auth.error.noSupabase'));
       return;
     }
     const mail = email.trim();
     if (!mail || !password) {
-      setError('邮箱和密码都要填。');
+      setError(t('auth.error.missingFields'));
       return;
     }
 
@@ -70,17 +73,17 @@ export default function AuthPanel({
         : await client.auth.signUp({ email: mail, password });
 
       if (result.error) {
-        setError(friendlyError(result.error.message));
+        setError(friendlyError(t, result.error.message));
         return;
       }
       if (!result.data.session) {
         // 理论上不该出现（项目已开 autoconfirm），留一条能自救的提示
-        setNotice('账号建好了，但还需要邮箱确认。找 Hao 在后台点一下确认。');
+        setNotice(t('auth.notice.needConfirm'));
         return;
       }
       await onAuthenticated();
     } catch (err) {
-      setError(friendlyError(err instanceof Error ? err.message : String(err)));
+      setError(friendlyError(t, err instanceof Error ? err.message : String(err)));
     } finally {
       setBusy(false);
     }
@@ -89,9 +92,9 @@ export default function AuthPanel({
   return (
     <div className="flex flex-1 flex-col justify-center gap-5 pb-10">
       <div className="fx-pop">
-        <h1 className="font-heading text-[28px] leading-tight tracking-tight">用账号登录</h1>
+        <h1 className="font-heading text-[28px] leading-tight tracking-tight">{t('auth.title')}</h1>
         <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-          登录后口味、摇号与反馈存在云端，换设备也跟着走；不登录就还用这台机器上的本地 Profile。
+          {t('auth.desc')}
         </p>
       </div>
 
@@ -103,7 +106,7 @@ export default function AuthPanel({
           className={tab === 'signin' ? 'btn btn-primary btn-block' : 'btn btn-secondary btn-block'}
           style={{ height: 42 }}
         >
-          登录
+          {t('auth.tab.signin')}
         </button>
         <button
           type="button"
@@ -112,13 +115,13 @@ export default function AuthPanel({
           className={tab === 'signup' ? 'btn btn-primary btn-block' : 'btn btn-secondary btn-block'}
           style={{ height: 42 }}
         >
-          注册
+          {t('auth.tab.signup')}
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="fx-pop card elev-md flex flex-col gap-4" style={{ animationDelay: '110ms' }}>
         <label className="field flex flex-col gap-1">
-          <span>邮箱</span>
+          <span>{t('auth.email.label')}</span>
           <input
             type="email"
             autoComplete="email"
@@ -129,13 +132,13 @@ export default function AuthPanel({
           />
         </label>
         <label className="field flex flex-col gap-1">
-          <span>密码</span>
+          <span>{t('auth.password.label')}</span>
           <input
             type="password"
             autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="至少 6 位"
+            placeholder={t('auth.password.placeholder')}
             className="input"
           />
         </label>
@@ -152,12 +155,12 @@ export default function AuthPanel({
         )}
 
         <button type="submit" disabled={busy} className="btn btn-primary btn-block" style={{ height: 48 }}>
-          {busy ? '处理中…' : tab === 'signin' ? '登录' : '注册并登录'}
+          {busy ? t('auth.submit.processing') : tab === 'signin' ? t('auth.submit.signin') : t('auth.submit.signup')}
         </button>
       </form>
 
       <button type="button" onClick={onCancel} className="btn btn-ghost btn-block">
-        先不登录，用游客模式
+        {t('auth.cancel')}
       </button>
     </div>
   );

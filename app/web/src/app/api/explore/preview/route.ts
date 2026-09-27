@@ -1,6 +1,6 @@
 import { sanitizeDishes } from '@/lib/notes/codes';
 import type { ImportPreview } from '@/lib/places/contract';
-import { ValidationError } from '@/lib/places/errors';
+import { ValidationError, tagUpstreamCode } from '@/lib/places/errors';
 import { readJsonBody, requireString, withApiErrors } from '@/lib/places/http';
 import { buildPreview } from '@/lib/places/preview';
 import { resolveProviders } from '@/lib/places/providers';
@@ -28,18 +28,18 @@ export async function POST(request: Request): Promise<Response> {
       maxChars: MAX_PLACE_ID_CHARS,
     });
     if (body.dishes !== undefined && !Array.isArray(body.dishes)) {
-      throw new ValidationError('菜品格式不对');
+      throw new ValidationError('菜品格式不对', 'validation.invalid');
     }
     const dishes = sanitizeDishes(body.dishes ?? []);
 
     const { places, analyzer, placesDemo, analyzerDemo } = resolveProviders();
-    const details = await places.details(placeId);
-    const classification = await analyzer.classify({
+    const details = await tagUpstreamCode(places.details(placeId), 'places.upstream');
+    const classification = await tagUpstreamCode(analyzer.classify({
       name: details.name,
       ...(details.primaryType ? { primaryType: details.primaryType } : {}),
       ...(details.editorialSummary ? { editorialSummary: details.editorialSummary } : {}),
       ...(details.reviewSnippets ? { reviewSnippets: details.reviewSnippets } : {}),
-    });
+    }), 'llm.unavailable');
 
     const payload: ImportPreview = buildPreview({
       details,

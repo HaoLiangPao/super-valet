@@ -1,5 +1,5 @@
 import type { SearchResponse } from '@/lib/places/contract';
-import { NotFoundError } from '@/lib/places/errors';
+import { NotFoundError, tagUpstreamCode } from '@/lib/places/errors';
 import { readJsonBody, requireString, withApiErrors } from '@/lib/places/http';
 import { resolveProviders } from '@/lib/places/providers';
 import { filterRelevant } from '@/lib/places/relevance';
@@ -29,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
     const query = requireString(body, 'query', { label: '店名', maxChars: MAX_QUERY_CHARS });
 
     const { places, placesDemo } = resolveProviders();
-    const raw = await places.search(query);
+    const raw = await tagUpstreamCode(places.search(query), 'places.upstream');
     const { relevant, rejected } = filterRelevant(query, raw);
 
     if (relevant.length === 0) {

@@ -4,6 +4,7 @@ import "./globals.css";
 import AuthGate from "@/components/AuthGate";
 import BottomNav from "@/components/BottomNav";
 import TopBar from "@/components/TopBar";
+import { LocaleProvider } from "@/lib/i18n";
 
 const caprasimo = Caprasimo({
   subsets: ["latin"],
@@ -27,13 +28,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="zh-CN" className={`h-full ${caprasimo.variable} ${figtree.variable}`}>
       <body className="min-h-full antialiased" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pt-7 pb-24">
-          <AuthGate>
-            <TopBar />
-            {children}
-          </AuthGate>
-        </div>
-        <BottomNav />
+        <LocaleProvider>
+          <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pt-7 pb-24">
+            <AuthGate>
+              <TopBar />
+              {children}
+            </AuthGate>
+          </div>
+          <BottomNav />
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -13,6 +13,8 @@ import type { DishMention, FetchLogEntry } from '../places/contract';
 import type { PoolEntry } from '../store/backend';
 import { RADIUS_KM, defaultLocationPrefs } from '../catalog/types';
 import type { LocationPrefs, LocationSource, PoolSelection, RadiusOption } from '../catalog/types';
+import { toArchiveReason, toBusinessStatus } from '../catalog/availability';
+import type { ArchiveEntry, CatalogRestaurant } from '../catalog/availability';
 
 /**
  * EngineState / RollRecord / FeedbackRecord 与 Supabase 行之间的纯映射。
@@ -249,6 +251,11 @@ export interface RestaurantFactRow {
   bucket: string;
   confidence: number;
   reason: string;
+  /**
+   * 可用性（ADR-0009）。**可空**：0004 之前建的行、以及 Places 没给这个字段的店
+   * 都是 null，读的时候一律按 `OPERATIONAL` 处理。
+   */
+  business_status: string | null;
 }
 
 export interface PoolRow {
@@ -272,7 +279,7 @@ export interface SourceRow {
   raw_text: string | null;
 }
 
-export function restaurantToFactRow(r: Restaurant): RestaurantFactRow {
+export function restaurantToFactRow(r: CatalogRestaurant): RestaurantFactRow {
   return {
     place_id: r.placeId,
     name: r.name,
@@ -295,10 +302,13 @@ export function restaurantToFactRow(r: Restaurant): RestaurantFactRow {
     bucket: r.bucket,
     confidence: r.confidence,
     reason: r.reason,
+    // 没有可用性信息就写 null，而不是编造 'OPERATIONAL'：
+    // 「Places 说它开着」与「我们没问过」在排查时是两件事
+    business_status: r.businessStatus ?? null,
   };
 }
 
-export function factRowToRestaurant(row: RestaurantFactRow): Restaurant {
+export function factRowToRestaurant(row: RestaurantFactRow): CatalogRestaurant {
   return {
     placeId: row.place_id,
     name: row.name,
@@ -321,6 +331,10 @@ export function factRowToRestaurant(row: RestaurantFactRow): Restaurant {
     bucket: row.bucket as Restaurant['bucket'],
     confidence: row.confidence,
     reason: row.reason,
+    // 列为空（0004 迁移之前的行）→ 不带这个字段，下游按 OPERATIONAL 处理
+    ...(row.business_status
+      ? { businessStatus: toBusinessStatus(row.business_status) }
+      : {}),
   };
 }
 
@@ -530,4 +544,37 @@ function isRadiusOption(v: string): v is RadiusOption {
 export function rowsToSelection(rows: SelectionRow[], selectionSet: boolean): PoolSelection {
   if (rows.length > 0) return rows.map((r) => r.place_id);
   return selectionSet ? [] : null;
+}
+
+/* ---------------------------------------------------------------- *
+ * 归档集合（ADR-0009）
+ *
+ * 一张表（supabase/migrations/0004_availability_and_archive.sql）：
+ *   user_archived_restaurants —— (user_id, place_id)，RLS auth.uid() = user_id
+ *
+ * 与 user_pool_selection 的关系：**两张表并存，互不删对方的行**。
+ * 归档不是「从 selection 拿掉」，而是「另记一条」——「移除」才动 selection。
+ * 这正是「归档 ≠ 移除」在行模型上的样子；合成一张表（给 selection 加个
+ * archived 布尔列）做不到这件事：目录里从没导入过的店也能被归档，
+ * 而 selection 的行可能压根不存在。
+ * ---------------------------------------------------------------- */
+
+export interface ArchiveRow {
+  place_id: string;
+  archived_at: string;
+  reason: string;
+}
+
+export function archiveToRow(e: ArchiveEntry): ArchiveRow {
+  return { place_id: e.placeId, archived_at: e.archivedAt, reason: e.reason };
+}
+
+export function rowToArchive(row: ArchiveRow): ArchiveEntry {
+  return {
+    placeId: row.place_id,
+    archivedAt: row.archived_at,
+    // 认不出来的原因一律 manual：归档记录本身比「为什么」重要得多，
+    // 不能因为一个脏枚举就把用户的归档整条丢掉
+    reason: toArchiveReason(row.reason),
+  };
 }

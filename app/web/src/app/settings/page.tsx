@@ -7,25 +7,27 @@ import { ANCHOR_LIST, loadLocationPrefs, requestGps, saveLocationPrefs } from '@
 import { localizedPool } from '@/lib/catalog/localize';
 import { RADIUS_KM } from '@/lib/catalog/types';
 import type { LocationPrefs, RadiusOption } from '@/lib/catalog/types';
+import { useLocale, useT } from '@/lib/i18n';
+import type { Locale, MessageKey } from '@/lib/i18n';
 
-const GPS_FAILURE_LABEL: Record<GpsFailure, string> = {
-  unsupported: '这台设备不支持定位',
-  denied: '定位权限被拒绝',
-  unavailable: '定位暂时不可用',
-  timeout: '定位超时',
+const GPS_FAILURE_KEY: Record<GpsFailure, MessageKey> = {
+  unsupported: 'settings.gps.fail.unsupported',
+  denied: 'settings.gps.fail.denied',
+  unavailable: 'settings.gps.fail.unavailable',
+  timeout: 'settings.gps.fail.timeout',
 };
 
 const RADIUS_ORDER: RadiusOption[] = ['WALK', 'NEAR', 'MID', 'ALL'];
-const RADIUS_LABEL: Record<RadiusOption, string> = {
-  WALK: '步行可达',
-  NEAR: '顺路',
-  MID: '专程',
-  ALL: '不限',
+const RADIUS_LABEL_KEY: Record<RadiusOption, MessageKey> = {
+  WALK: 'settings.radius.walk',
+  NEAR: 'settings.radius.near',
+  MID: 'settings.radius.mid',
+  ALL: 'settings.radius.all',
 };
 
-function radiusKmLabel(opt: RadiusOption): string {
+function radiusKmLabel(opt: RadiusOption, allLabel: string): string {
   const km = RADIUS_KM[opt];
-  return Number.isFinite(km) ? `${km}km` : '不限';
+  return Number.isFinite(km) ? `${km}km` : allLabel;
 }
 
 /** source 为 null（用户从没设置过）时降级链落在默认锚点，选中态也照此高亮 */
@@ -36,6 +38,8 @@ function currentAnchorId(prefs: LocationPrefs): string | null {
 }
 
 export default function SettingsPage() {
+  const t = useT();
+  const { locale, setLocale } = useLocale();
   const [prefs, setPrefs] = useState<LocationPrefs | null>(null);
   const [poolCount, setPoolCount] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -52,7 +56,7 @@ export default function SettingsPage() {
 
   if (!prefs || poolCount === null) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
@@ -85,7 +89,7 @@ export default function SettingsPage() {
       setPrefs(result.prefs);
       setPoolCount(localizedPool().restaurants.length);
     } else {
-      setGpsError(`${GPS_FAILURE_LABEL[result.reason]}，继续使用你选择的锚点`);
+      setGpsError(`${t(GPS_FAILURE_KEY[result.reason])}${t('settings.location.gpsErrorSuffix')}`);
     }
     setGpsLoading(false);
   }
@@ -96,7 +100,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 pb-3">
       <section className="flex flex-col gap-2.5">
-        <h2 className="font-heading text-[16px]">位置</h2>
+        <h2 className="font-heading text-[16px]">{t('settings.location.title')}</h2>
 
         <button
           type="button"
@@ -110,7 +114,7 @@ export default function SettingsPage() {
             color: usingGps ? 'var(--color-accent-800)' : 'var(--color-text)',
           }}
         >
-          {gpsLoading ? '定位中…' : usingGps ? '✓ 用我当前位置' : '用我当前位置'}
+          {gpsLoading ? t('settings.location.gpsLocating') : usingGps ? t('settings.location.gpsActive') : t('settings.location.gpsUse')}
         </button>
         {gpsError && (
           <p className="fx-pop text-[12px] leading-relaxed" style={{ color: 'var(--color-accent-700)' }}>
@@ -146,7 +150,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-2.5">
-        <h2 className="font-heading text-[16px]">半径</h2>
+        <h2 className="font-heading text-[16px]">{t('settings.radius.title')}</h2>
         <div className="flex gap-1.5 rounded-[999px] p-1" style={{ background: 'var(--color-neutral-200)' }}>
           {RADIUS_ORDER.map((opt) => {
             const active = prefs.radius === opt;
@@ -161,25 +165,40 @@ export default function SettingsPage() {
                   color: active ? 'var(--color-bg)' : 'var(--color-neutral-700)',
                 }}
               >
-                {RADIUS_LABEL[opt]}
+                {t(RADIUS_LABEL_KEY[opt])}
                 <span className="mt-0.5 block" style={{ fontSize: 10, fontWeight: 400, opacity: 0.85 }}>
-                  {radiusKmLabel(opt)}
+                  {radiusKmLabel(opt, t('settings.radius.all'))}
                 </span>
               </button>
             );
           })}
         </div>
         <p className="px-1 text-[12px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-          当前池子 {poolCount} 家可选。
+          {t('settings.radius.poolCount', { count: poolCount })}
         </p>
       </section>
 
-      <section
-        className="flex flex-col gap-2 rounded-[16px] p-4"
-        style={{ background: 'var(--color-neutral-100)', border: '1px dashed var(--color-neutral-400)' }}
-      >
-        <h2 className="font-heading text-[15px]">语言</h2>
-        <p className="text-[12px]" style={{ color: 'var(--color-neutral-600)' }}>即将支持</p>
+      <section className="flex flex-col gap-2.5">
+        <h2 className="font-heading text-[16px]">{t('settings.language.title')}</h2>
+        <div className="flex gap-1.5 rounded-[999px] p-1" style={{ background: 'var(--color-neutral-200)' }}>
+          {(['zh', 'en'] as Locale[]).map((l) => {
+            const active = locale === l;
+            return (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLocale(l)}
+                className="flex-1 rounded-full py-2 text-center text-[12px] font-bold"
+                style={{
+                  background: active ? 'var(--color-accent)' : 'transparent',
+                  color: active ? 'var(--color-bg)' : 'var(--color-neutral-700)',
+                }}
+              >
+                {l === 'zh' ? t('settings.language.zh') : t('settings.language.en')}
+              </button>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

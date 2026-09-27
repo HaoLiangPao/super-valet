@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 
 import ProfileBadge from '@/components/ProfileBadge';
+import { personaTemplateLabel, useT } from '@/lib/i18n';
 import { PERSONA_TEMPLATES } from '@/lib/profiles/personas';
 import {
   createProfile,
@@ -34,6 +35,7 @@ export default function ProfileGate({
   onRequestLogin?: () => void;
 }) {
   const router = useRouter();
+  const t = useT();
   const [ready, setReady] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export default function ProfileGate({
   }
 
   function handleDelete(profile: Profile) {
-    if (!window.confirm(`删除「${profile.name}」？这个 Profile 的摇号与反馈会一起删掉。`)) return;
+    if (!window.confirm(t('profile.deleteConfirm', { name: profile.name }))) return;
     deleteProfile(profile.id);
     setProfiles(listProfiles());
   }
@@ -91,16 +93,16 @@ export default function ProfileGate({
 
   function pickTemplate(key: string) {
     setDraftPersona(key);
-    const t = PERSONA_TEMPLATES.find((p) => p.key === key);
-    if (t && !draftName.trim()) {
-      setDraftName(t.name);
-      setDraftEmoji(t.emoji);
+    const tpl = PERSONA_TEMPLATES.find((p) => p.key === key);
+    if (tpl && !draftName.trim()) {
+      setDraftName(personaTemplateLabel(t, tpl.key, tpl.name));
+      setDraftEmoji(tpl.emoji);
     }
   }
 
   if (!ready) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
@@ -117,10 +119,10 @@ export default function ProfileGate({
   return (
     <div className="flex flex-1 flex-col gap-6 pt-6">
       <div className="flex items-baseline justify-between">
-        <h1 className="font-heading text-[28px] leading-tight tracking-tight">今晚谁在吃？</h1>
+        <h1 className="font-heading text-[28px] leading-tight tracking-tight">{t('profile.pickTitle')}</h1>
         {profiles.length > 0 && (
           <button type="button" onClick={() => setManaging((v) => !v)} className="btn btn-ghost">
-            {managing ? '完成' : '管理'}
+            {managing ? t('profile.manageDone') : t('profile.manage')}
           </button>
         )}
       </div>
@@ -154,7 +156,7 @@ export default function ProfileGate({
                 className="text-xs underline underline-offset-2"
                 style={{ color: 'var(--color-accent-700)' }}
               >
-                删除
+                {t('profile.delete')}
               </button>
             )}
           </div>
@@ -170,7 +172,7 @@ export default function ProfileGate({
             <span className="text-4xl" aria-hidden="true">
               ＋
             </span>
-            <span className="text-sm">新建</span>
+            <span className="text-sm">{t('profile.create')}</span>
           </button>
         )}
       </div>
@@ -178,18 +180,18 @@ export default function ProfileGate({
       {creating && (
         <form onSubmit={handleCreate} className="fx-pop card elev-md flex flex-col gap-4">
           <label className="field flex flex-col gap-1">
-            <span>名字</span>
+            <span>{t('profile.form.nameLabel')}</span>
             <input
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               maxLength={12}
-              placeholder="比如：老张"
+              placeholder={t('profile.form.namePlaceholder')}
               className="input"
             />
           </label>
 
           <div className="field flex flex-col gap-2">
-            <span>头像</span>
+            <span>{t('profile.form.avatarLabel')}</span>
             <div className="flex flex-wrap gap-2">
               {EMOJI_CHOICES.map((e) => (
                 <button
@@ -210,16 +212,16 @@ export default function ProfileGate({
           </div>
 
           <label className="field flex flex-col gap-1">
-            <span>口味模板（可选）</span>
+            <span>{t('profile.form.personaLabel')}</span>
             <select
               value={draftPersona}
               onChange={(e) => pickTemplate(e.target.value)}
               className="input"
             >
-              <option value="">不预设，从零开始学</option>
-              {PERSONA_TEMPLATES.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.emoji} {t.name}
+              <option value="">{t('profile.form.personaNone')}</option>
+              {PERSONA_TEMPLATES.map((tpl) => (
+                <option key={tpl.key} value={tpl.key}>
+                  {tpl.emoji} {personaTemplateLabel(t, tpl.key, tpl.name)}
                 </option>
               ))}
             </select>
@@ -227,7 +229,7 @@ export default function ProfileGate({
 
           <div className="flex gap-3">
             <button type="submit" className="btn btn-primary btn-block" style={{ height: 48 }}>
-              创建
+              {t('profile.form.submit')}
             </button>
             <button
               type="button"
@@ -235,14 +237,14 @@ export default function ProfileGate({
               className="btn btn-secondary btn-block"
               style={{ height: 48 }}
             >
-              取消
+              {t('profile.form.cancel')}
             </button>
           </div>
         </form>
       )}
 
       <p className="text-center text-xs text-muted">
-        每个 Profile 的口味、记录、反馈完全隔离，互不影响。
+        {t('profile.isolationNote')}
       </p>
 
       {onRequestLogin && (
@@ -251,10 +253,10 @@ export default function ProfileGate({
           style={{ borderColor: 'var(--color-divider)' }}
         >
           <button type="button" onClick={onRequestLogin} className="btn btn-ghost">
-            有账号？用邮箱登录 →
+            {t('profile.loginEntry')}
           </button>
           <span className="text-center text-[11.5px]" style={{ color: 'var(--color-neutral-600)' }}>
-            登录后数据存云端、换设备也跟着走；本机这些 Profile 会原样留着。
+            {t('profile.loginNote')}
           </span>
         </div>
       )}

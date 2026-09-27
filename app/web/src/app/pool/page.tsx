@@ -15,6 +15,8 @@ import { freshness } from '@/lib/engine/scoring';
 import { loadState, saveState } from '@/lib/engine/store';
 import { DINNER, epochDay } from '@/lib/engine/types';
 import type { EngineState, Restaurant } from '@/lib/engine/types';
+import { categoryLabel, useLocale, useT } from '@/lib/i18n';
+import type { Locale, TFunc } from '@/lib/i18n';
 
 function StatTile({ value, label }: { value: number; label: string }) {
   return (
@@ -30,13 +32,19 @@ function StatTile({ value, label }: { value: number; label: string }) {
   );
 }
 
-/** 「距离基于：xxx」里的那个 xxx —— anchor 找不到名字时兜底成通用文案 */
-function anchorLabel(prefs: LocationPrefs): string {
+/**
+ * 「距离基于：xxx」里的那个 xxx —— 只能显示一种语言，所以按 locale 从
+ * anchor 的 labelZh/labelEn 里选一个；anchor 是数据（design/0007 §1），
+ * 不走字典，但「你的当前位置」「默认锚点」这些是界面 chrome，走 t()。
+ */
+function anchorLabel(prefs: LocationPrefs, locale: Locale, t: TFunc): string {
   const source = prefs.source;
-  if (!source) return ANCHOR_LIST[0]?.labelZh ?? '默认锚点';
-  if (source.kind === 'gps') return '你的当前位置';
+  const fallbackAnchor: (typeof ANCHOR_LIST)[number] | undefined = ANCHOR_LIST[0];
+  const pick = (a: (typeof ANCHOR_LIST)[number] | undefined) => (locale === 'en' ? a?.labelEn : a?.labelZh);
+  if (!source) return pick(fallbackAnchor) ?? t('pool.anchor.defaultFallback');
+  if (source.kind === 'gps') return t('pool.anchor.gpsCurrent');
   const anchor = ANCHOR_LIST.find((a) => a.id === source.id);
-  return anchor?.labelZh ?? '所选锚点';
+  return pick(anchor) ?? t('pool.anchor.defaultFallback');
 }
 
 function RemoveConfirmSheet({
@@ -50,14 +58,15 @@ function RemoveConfirmSheet({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
       <div className="sheet-panel fx-sheet">
         <div className="sheet-grabber" />
-        <div className="font-heading text-[20px] leading-[1.2]">从池子移除「{name}」？</div>
+        <div className="font-heading text-[20px] leading-[1.2]">{t('pool.removeConfirm.title', { name })}</div>
         <p className="mt-1.5 mb-5 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-          移除后它不再参与摇一摇，但历史记录和口味数据会保留 —— 之后加回来，之前学到的偏好还在。
+          {t('pool.removeConfirm.desc')}
         </p>
         <div className="flex gap-2.5">
           <button
@@ -67,7 +76,7 @@ function RemoveConfirmSheet({
             className="btn btn-secondary"
             style={{ flex: 1, height: 46 }}
           >
-            再想想
+            {t('pool.removeConfirm.cancel')}
           </button>
           <button
             type="button"
@@ -76,7 +85,7 @@ function RemoveConfirmSheet({
             className="btn btn-primary"
             style={{ flex: 1, height: 46 }}
           >
-            确认移除
+            {t('pool.removeConfirm.confirm')}
           </button>
         </div>
       </div>
@@ -85,6 +94,8 @@ function RemoveConfirmSheet({
 }
 
 export default function PoolPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const [state, setState] = useState<EngineState | null>(null);
   const [pool, setPool] = useState<LocalizedPool | null>(null);
   const [prefs, setPrefs] = useState<LocationPrefs | null>(null);
@@ -103,7 +114,7 @@ export default function PoolPage() {
 
   if (!state || !pool || !prefs) {
     return (
-      <div className="flex flex-1 items-center justify-center text-muted">加载中…</div>
+      <div className="flex flex-1 items-center justify-center text-muted">{t('common.loading')}</div>
     );
   }
 
@@ -133,16 +144,16 @@ export default function PoolPage() {
   return (
     <div className="flex flex-1 flex-col gap-3 pb-3">
       <div className="flex gap-2">
-        <StatTile value={totalInPool} label="家在池子里" />
-        <StatTile value={eligibleToday.length} label="今晚可选" />
-        <StatTile value={cuisineCount} label="种菜系" />
+        <StatTile value={totalInPool} label={t('pool.stat.total')} />
+        <StatTile value={eligibleToday.length} label={t('pool.stat.eligibleToday')} />
+        <StatTile value={cuisineCount} label={t('pool.stat.cuisineCount')} />
       </div>
 
       <p className="px-1 text-center text-[11.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-        距离基于：{anchorLabel(prefs)}
+        {t('pool.distanceBasedOn', { anchor: anchorLabel(prefs, locale, t) })}
         {' '}
         <Link href="/settings" style={{ color: 'var(--color-accent-700)', fontWeight: 700 }}>
-          换一个
+          {t('pool.changeAnchor')}
         </Link>
       </p>
       {pool.filteredOut > 0 && (
@@ -150,8 +161,8 @@ export default function PoolPage() {
           className="fx-rise px-1 text-center text-[11.5px] leading-relaxed"
           style={{ color: 'var(--color-accent-700)' }}
         >
-          有 {pool.filteredOut} 家超出当前半径，
-          <Link href="/settings" style={{ fontWeight: 700 }}>去放宽</Link>
+          {t('pool.filteredOutHint', { count: pool.filteredOut })}
+          <Link href="/settings" style={{ fontWeight: 700 }}>{t('pool.goWiden')}</Link>
         </p>
       )}
 
@@ -167,10 +178,10 @@ export default function PoolPage() {
             background: 'var(--color-accent-100)',
           }}
         >
-          ＋ 添加餐厅
+          {t('pool.addRestaurant')}
         </Link>
         <Link href="/packages" className="btn btn-secondary text-center" style={{ flex: 1, height: 46 }}>
-          套餐
+          {t('pool.packages')}
         </Link>
       </div>
 
@@ -180,16 +191,16 @@ export default function PoolPage() {
           style={{ background: 'var(--color-neutral-100)', border: '1px dashed var(--color-neutral-400)' }}
         >
           <div className="text-[32px]">🍽️</div>
-          <div className="font-heading text-[17px]">池子空空如也</div>
+          <div className="font-heading text-[17px]">{t('pool.emptyPool.title')}</div>
           <p className="max-w-[260px] text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-            先去套餐里一键加几家，或者自己搜一家喜欢的店。
+            {t('pool.emptyPool.desc')}
           </p>
           <div className="flex w-full gap-2.5">
             <Link href="/packages" className="btn btn-primary text-center" style={{ flex: 1, height: 44 }}>
-              看套餐
+              {t('pool.emptyPool.viewPackages')}
             </Link>
             <Link href="/explore" className="btn btn-secondary text-center" style={{ flex: 1, height: 44 }}>
-              去探索
+              {t('pool.emptyPool.explore')}
             </Link>
           </div>
         </div>
@@ -201,12 +212,12 @@ export default function PoolPage() {
           style={{ background: 'var(--color-neutral-100)', border: '1px dashed var(--color-neutral-400)' }}
         >
           <div className="text-[32px]">📍</div>
-          <div className="font-heading text-[17px]">当前半径内没有店</div>
+          <div className="font-heading text-[17px]">{t('pool.emptyRadius.title')}</div>
           <p className="max-w-[260px] text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-            池子里其实有 {totalInPool} 家，只是都超出了你设的半径。
+            {t('pool.emptyRadius.desc', { count: totalInPool })}
           </p>
           <Link href="/settings" className="btn btn-primary" style={{ height: 44 }}>
-            去设置放宽半径
+            {t('pool.emptyRadius.widen')}
           </Link>
         </div>
       )}
@@ -217,7 +228,10 @@ export default function PoolPage() {
           const paused = !!state.paused[r.placeId];
           const swatch = swatchFor(categoryOf(r));
           const last = state.lastEatenDay[r.placeId];
-          const daysLabel = last === undefined ? '没吃过' : `${today - last} 天前`;
+          const daysSince = last === undefined ? null : today - last;
+          const daysLabel = daysSince === null
+            ? t('pool.item.neverEaten')
+            : daysSince === 1 ? t('pool.item.dayAgo') : t('pool.item.daysAgo', { days: daysSince });
           return (
             // 外层只管入场动效（fx-pop 的 opacity 0→1 在 forwards 下会永久盖住同元素的行内
             // opacity），暂停时的常驻半透明必须放在不参与动画的内层元素上（CLAUDE.md §7）。
@@ -245,13 +259,13 @@ export default function PoolPage() {
                     />
                   </div>
                   <span className="flex-none text-[11px]" style={{ color: 'var(--color-neutral-600)' }}>
-                    {CATEGORY_LABELS[categoryOf(r)] ?? categoryOf(r)} · {r.distanceKm}km
+                    {categoryLabel(categoryOf(r), locale, CATEGORY_LABELS)} · {r.distanceKm}km
                   </span>
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   {paused && (
                     <span className="tag tag-neutral" style={{ marginRight: 'auto' }}>
-                      已暂停 · 不参与摇一摇
+                      {t('pool.item.paused')}
                     </span>
                   )}
                   <button
@@ -260,7 +274,7 @@ export default function PoolPage() {
                     className="btn btn-ghost"
                     style={{ height: 32, fontSize: 12 }}
                   >
-                    {paused ? '恢复' : '暂停'}
+                    {paused ? t('pool.item.resume') : t('pool.item.pause')}
                   </button>
                   <button
                     type="button"
@@ -268,7 +282,7 @@ export default function PoolPage() {
                     className="btn btn-ghost"
                     style={{ height: 32, fontSize: 12, color: 'var(--color-accent-700)' }}
                   >
-                    移除
+                    {t('pool.item.remove')}
                   </button>
                 </div>
               </div>
@@ -278,8 +292,7 @@ export default function PoolPage() {
       </div>
 
       <p className="px-1 text-center text-[11.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-        进度条 = 新鲜度 1−e^(−d/τ)，满格代表该吃了。暂停不参与摇一摇但记录保留；
-        移除需要确认，历史和口味数据都会留着。
+        {t('pool.footerNote')}
       </p>
 
       {confirmTarget && (

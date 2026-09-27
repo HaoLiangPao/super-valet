@@ -5,6 +5,7 @@ import type { FetchLogEntry } from '../places/contract';
 import type { EngineState, FeedbackRecord, RollRecord } from '../engine/types';
 import type { CloudGateway } from './gateway';
 import {
+  archiveToRow,
   changedRows,
   feedbackToRow,
   fetchLogToRow,
@@ -14,6 +15,7 @@ import {
   rowToFeedback,
   rowToFetchLog,
   rowToLocationPrefs,
+  rowToArchive,
   rowToRoll,
   rowsToPool,
   rowsToSelection,
@@ -24,6 +26,7 @@ import {
 } from './rows';
 import type { CategoryRow, RestaurantRow } from './rows';
 import type { LocationPrefs, PoolSelection } from '../catalog/types';
+import type { ArchiveEntry } from '../catalog/availability';
 
 export interface CloudIdentity {
   userId: string;
@@ -67,6 +70,7 @@ export class CloudStore implements StoreBackend {
   private fetchLog: FetchLogEntry[];
   private selection: PoolSelection;
   private locationPrefs: LocationPrefs;
+  private archive: ArchiveEntry[];
 
   /** 上一次成功推上去的行，用来做差分：整份 state 存进来，只推真正变了的行 */
   private lastRestaurantRows: Map<string, RestaurantRow>;
@@ -89,6 +93,7 @@ export class CloudStore implements StoreBackend {
       fetchLog: FetchLogEntry[];
       selection: PoolSelection;
       locationPrefs: LocationPrefs;
+      archive: ArchiveEntry[];
     },
   ) {
     this.identity = identity;
@@ -99,6 +104,7 @@ export class CloudStore implements StoreBackend {
     this.fetchLog = snapshot.fetchLog;
     this.selection = snapshot.selection;
     this.locationPrefs = snapshot.locationPrefs;
+    this.archive = snapshot.archive;
     this.lastRestaurantRows = indexBy(stateToRestaurantRows(this.state), (r) => r.place_id);
     this.lastCategoryRows = indexBy(stateToCategoryRows(this.state), (r) => r.category);
   }
@@ -222,6 +228,32 @@ export class CloudStore implements StoreBackend {
     });
   }
 
+  /**
+   * 归档（ADR-0009）。写 selection 的那一套差分/替换在这里用不上：
+   * 归档是**逐条**操作（用户一家一家确认），一条一个 upsert / delete，
+   * 不需要「整体替换」——也不该有，那会让两个标签页互相抹掉对方的归档。
+   */
+  loadArchive(): ArchiveEntry[] {
+    return this.archive.map((e) => clone(e));
+  }
+
+  addToArchive(entry: ArchiveEntry): void {
+    const copy = clone(entry);
+    this.archive = [copy, ...this.archive.filter((e) => e.placeId !== copy.placeId)];
+    this.enqueue({
+      label: `归档 ${copy.placeId}`,
+      run: () => this.gateway.upsertArchive(archiveToRow(copy)),
+    });
+  }
+
+  removeFromArchive(placeId: string): void {
+    this.archive = this.archive.filter((e) => e.placeId !== placeId);
+    this.enqueue({
+      label: `恢复 ${placeId}`,
+      run: () => this.gateway.deleteArchive(placeId),
+    });
+  }
+
   exportIdentity(): unknown {
     return {
       mode: 'cloud',
@@ -327,13 +359,18 @@ export async function openCloudStore(
     }
   }
 
-  const [poolRows, dishRows, sourceRows, fetchLogRows, selectionRows, prefsRow] = await Promise.all([
+  const [
+    poolRows, dishRows, sourceRows, fetchLogRows, selectionRows, prefsRow, archiveRows,
+  ] = await Promise.all([
     optional('餐厅池', () => gateway.fetchPool()),
     optional('菜品', () => gateway.fetchDishes()),
     optional('笔记原文', () => gateway.fetchSources()),
     optional('抓取台账', () => gateway.fetchFetchLog()),
     optional('池子选择', () => gateway.fetchSelection()),
     optionalOne('位置偏好', () => gateway.fetchLocationPrefs()),
+    // 0004 迁移比部署晚一步时这张表还不存在 → 按「没有归档」处理。
+    // **宁可多摇出一家已归档的店，也不能让人登录失败**（openCloudStore 的既定原则）
+    optional('归档', () => gateway.fetchArchive()),
   ]);
 
   const identity: CloudIdentity = {
@@ -355,5 +392,6 @@ export async function openCloudStore(
     // 与目录轮之前的行为一致，用户不会被锁在门外（openCloudStore 的既定原则）
     selection: rowsToSelection(selectionRows, prefsRow?.selection_set === true),
     locationPrefs: rowToLocationPrefs(prefsRow),
+    archive: archiveRows.map(rowToArchive),
   });
 }

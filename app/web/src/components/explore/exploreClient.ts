@@ -15,7 +15,9 @@
  *   候选 placeId = mock-lowconf-1  → 预览低置信度（<0.7）
  *   候选 placeId = mock-inpool-1   → 预览 alreadyInPool = true
  */
-import { logFetch } from '@/lib/store/pool';
+import { currentLocale, resolveApiErrorMessage } from '@/lib/i18n';
+import { en } from '@/lib/i18n/messages.en';
+import { zh } from '@/lib/i18n/messages.zh';
 import type {
   AnalyzeResponse,
   DishMention,
@@ -23,6 +25,12 @@ import type {
   PlaceCandidate,
   SearchResponse,
 } from '@/lib/places/contract';
+import { logFetch } from '@/lib/store/pool';
+
+/** 不是组件/hook，拿不到 `useT()`，按当前语言直接查字典 */
+function tt(key: 'explore.error.network' | 'explore.error.badResponse' | 'explore.error.generic'): string {
+  return currentLocale() === 'en' ? en[key] : zh[key];
+}
 
 const USE_MOCK = process.env.NEXT_PUBLIC_EXPLORE_MOCK === '1';
 
@@ -41,19 +49,20 @@ async function postJson<TRes>(url: string, body: unknown): Promise<TRes> {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new Error('网络好像断了，检查一下连接再试试');
+    throw new Error(tt('explore.error.network'));
   }
 
   let data: unknown;
   try {
     data = await res.json();
   } catch {
-    throw new Error('服务器返回的内容没看懂，稍后再试');
+    throw new Error(tt('explore.error.badResponse'));
   }
 
-  const maybeError = data as { error?: boolean; message?: string };
+  const maybeError = data as { error?: boolean; message?: string; code?: string };
   if (!res.ok || maybeError?.error) {
-    throw new Error(maybeError?.message || '出错了，稍后再试');
+    // 服务端优先给 code（design/0007 §3/§4）；查不到字典项就退回服务端自带的中文
+    throw new Error(resolveApiErrorMessage(maybeError?.code, maybeError?.message || tt('explore.error.generic')));
   }
   return data as TRes;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
 import type { PlaceCandidate } from '@/lib/places/contract';
 
 export default function CandidateList({
@@ -11,12 +12,14 @@ export default function CandidateList({
   onPick: (candidate: PlaceCandidate) => void;
   onBack: () => void;
 }) {
+  const t = useT();
+
   if (candidates.length === 0) {
     return (
       <div className="fx-pop flex flex-col items-center gap-3 py-8 text-center">
-        <p style={{ color: 'var(--color-neutral-600)' }}>没找到，换个说法再试试</p>
+        <p style={{ color: 'var(--color-neutral-600)' }}>{t('explore.candidates.notFound')}</p>
         <button type="button" onClick={onBack} className="btn btn-secondary">
-          重新搜索
+          {t('explore.candidates.researchAgain')}
         </button>
       </div>
     );
@@ -43,7 +46,7 @@ export default function CandidateList({
           {(c.rating != null || c.ratingCount != null) && (
             <span className="text-[11.5px] font-semibold" style={{ color: 'var(--color-neutral-700)' }}>
               {c.rating != null ? `★ ${c.rating.toFixed(1)}` : ''}
-              {c.ratingCount != null ? `（${c.ratingCount}）` : ''}
+              {c.ratingCount != null ? t('common.parenCount', { count: c.ratingCount }) : ''}
             </span>
           )}
         </button>
@@ -59,7 +62,7 @@ export default function CandidateList({
           color: 'var(--color-neutral-700)',
         }}
       >
-        换个词重新搜
+        {t('explore.candidates.backSearch')}
       </button>
     </div>
   );

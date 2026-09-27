@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
+  ArchiveRow,
   CategoryRow,
   DishRow,
   FeedbackRow,
@@ -56,6 +57,13 @@ export interface CloudGateway {
   fetchLocationPrefs(): Promise<LocationPrefsRow | null>;
   /** 只写位置相关的列，不碰 `selection_set`（那是 replaceSelection 的字段） */
   saveLocationPrefs(row: LocationPrefsWrite): Promise<void>;
+
+  /* ── 归档集合（ADR-0009）────────────────────────────────────────── */
+
+  fetchArchive(): Promise<ArchiveRow[]>;
+  /** 幂等：同一个 (user, place) 再归档一次 = 覆盖原因与时间 */
+  upsertArchive(row: ArchiveRow): Promise<void>;
+  deleteArchive(placeId: string): Promise<void>;
 }
 
 interface PostgrestLikeError {
@@ -378,6 +386,35 @@ export function supabaseGateway(client: SupabaseClient, userId: string): CloudGa
         await client.from('user_location_prefs')
           .upsert({ user_id: userId, ...row }, { onConflict: 'user_id' }),
         '写入位置偏好失败',
+      );
+    },
+
+    async fetchArchive() {
+      // 显式排序：归档列表按归档时间倒序展示（最近不见的那家排最前面）
+      return unwrap<ArchiveRow[]>(
+        await client
+          .from('user_archived_restaurants')
+          .select('place_id, archived_at, reason')
+          .eq('user_id', userId)
+          .order('archived_at', { ascending: false })
+          .order('place_id', { ascending: true }),
+        '读取归档失败',
+      );
+    },
+
+    async upsertArchive(row: ArchiveRow) {
+      assertOk(
+        await client.from('user_archived_restaurants')
+          .upsert({ user_id: userId, ...row }, { onConflict: 'user_id,place_id' }),
+        '写入归档失败',
+      );
+    },
+
+    async deleteArchive(placeId: string) {
+      assertOk(
+        await client.from('user_archived_restaurants').delete()
+          .eq('user_id', userId).eq('place_id', placeId),
+        '恢复归档失败',
       );
     },
   };
