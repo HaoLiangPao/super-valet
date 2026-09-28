@@ -101,6 +101,9 @@ const CATEGORY_WORDS = [
   '早茶', '点心', '麻辣烫', '黄焖鸡', '日料', '寿司', '刺身', '居酒屋', '韩餐',
   '韩国', '韩式', '炸鸡', '越南粉', '泰国菜', '泰餐', '印度菜', '马来西亚菜',
   '中餐', '西餐', '快餐', '甜品', '奶茶', '咖啡', '自助餐', '海鲜', '餐厅', '美食',
+  // S4 的类目查询词表（`category-queries.ts`）要求这些也被认成类目词，
+  // 否则那个类目的候选会被店名相关度整组误杀
+  '粥',
   // 英文类目
   'restaurant', 'cuisine', 'food', 'dinner', 'lunch', 'brunch', 'breakfast',
   'italian', 'steakhouse', 'steak', 'pizza', 'burger', 'mediterranean', 'greek',
@@ -109,6 +112,8 @@ const CATEGORY_WORDS = [
   'malaysian', 'chinese', 'japanese', 'noodle', 'dumpling', 'hotpot', 'grill',
   'dim', 'sum', 'taiwanese', 'cantonese', 'northern', 'buffet', 'kitchen', 'bar',
   'asian', 'western', 'halal', 'vegetarian', 'bakery', 'dessert', 'cafe',
+  // 同上：S4 类目查询词表用到的英文类目词
+  'filipino', 'deli', 'sandwich', 'caribbean', 'canadian',
 ];
 
 /**

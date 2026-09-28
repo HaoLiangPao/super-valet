@@ -7,6 +7,8 @@ import { defaultLocationPrefs } from '../catalog/types';
 import type { LocationPrefs, PoolSelection } from '../catalog/types';
 import { sanitizeArchive } from '../catalog/availability';
 import type { ArchiveEntry, CatalogRestaurant } from '../catalog/availability';
+import { REFRESH_REPORT_LIMIT, sanitizeRefreshReports } from '../catalog/refresh-report';
+import type { RefreshReport } from '../catalog/refresh-types';
 
 /**
  * 存储后端抽象（ADR-0006）。
@@ -70,6 +72,18 @@ export interface StoreBackend {
   /** 幂等：同一个 placeId 再归档一次 = 覆盖原因与时间，不会出现两条 */
   addToArchive(entry: ArchiveEntry): void;
   removeFromArchive(placeId: string): void;
+
+  /* ── 刷新报告（design/0009 §4.3）────────────────────────────────── */
+
+  /**
+   * 刷新报告台账，**最近的在前**（两个后端同序）。
+   *
+   * 为什么刷新要落库而不是只在内存里显示一次：报告里有「哪几家失败了」和
+   * 「哪几家需要你确认」—— 用户当时可能没空点。一次性的 toast 等于把这些
+   * 决定悄悄丢掉，那「更新了 12 家」就成了一句没人能复核的话。
+   */
+  loadRefreshReports(): RefreshReport[];
+  appendRefreshReport(report: RefreshReport): void;
 }
 
 /**
@@ -211,6 +225,15 @@ export const localBackend: StoreBackend = {
   },
   removeFromArchive(placeId) {
     write('archive.v1', this.loadArchive().filter((e) => e.placeId !== placeId));
+  },
+
+  loadRefreshReports() {
+    return sanitizeRefreshReports(read<unknown>('refresh.v1', []));
+  },
+  appendRefreshReport(report) {
+    // 同 fetchlog：观测用的台账不必无限增长，留最近 REFRESH_REPORT_LIMIT 份
+    write('refresh.v1', [report, ...this.loadRefreshReports().filter((r) => r.id !== report.id)]
+      .slice(0, REFRESH_REPORT_LIMIT));
   },
 
   loadFetchLog() {

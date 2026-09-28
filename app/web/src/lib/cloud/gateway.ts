@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { REFRESH_REPORT_LIMIT } from '../catalog/refresh-report';
 import type {
   ArchiveRow,
   CategoryRow,
@@ -11,6 +12,7 @@ import type {
   LocationPrefsWrite,
   PoolRow,
   ProfileRow,
+  RefreshReportRow,
   RestaurantRow,
   RollRow,
   SelectionRow,
@@ -64,6 +66,13 @@ export interface CloudGateway {
   /** 幂等：同一个 (user, place) 再归档一次 = 覆盖原因与时间 */
   upsertArchive(row: ArchiveRow): Promise<void>;
   deleteArchive(placeId: string): Promise<void>;
+
+  /* ── 刷新报告（design/0009 §4.3）────────────────────────────────── */
+
+  /** 最近 REFRESH_REPORT_LIMIT 份，按 started_at 倒序（与本地后端同序） */
+  fetchRefreshReports(): Promise<RefreshReportRow[]>;
+  /** 幂等：写队列失败重试会重放同一份报告，主键冲突时覆盖而不是报错 */
+  insertRefreshReport(row: RefreshReportRow): Promise<void>;
 }
 
 interface PostgrestLikeError {
@@ -415,6 +424,29 @@ export function supabaseGateway(client: SupabaseClient, userId: string): CloudGa
         await client.from('user_archived_restaurants').delete()
           .eq('user_id', userId).eq('place_id', placeId),
         '恢复归档失败',
+      );
+    },
+
+    async fetchRefreshReports() {
+      // 显式排序 + 上限：刷新历史按时间倒序看，且只看最近的那几十份
+      return unwrap<RefreshReportRow[]>(
+        await client
+          .from('refresh_reports')
+          // 必须是单个字符串字面量（同 fetchRolls 的说明）
+          .select('id, trigger, started_at, finished_at, updated_count, unchanged_count, discovered_count, attention_count, failed_count, fetch_count, report')
+          .eq('user_id', userId)
+          .order('started_at', { ascending: false })
+          .order('id', { ascending: true })
+          .limit(REFRESH_REPORT_LIMIT),
+        '读取刷新报告失败',
+      );
+    },
+
+    async insertRefreshReport(row: RefreshReportRow) {
+      assertOk(
+        await client.from('refresh_reports')
+          .upsert({ ...row, user_id: userId }, { onConflict: 'user_id,id' }),
+        '写入刷新报告失败',
       );
     },
   };

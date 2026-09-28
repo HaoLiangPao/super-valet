@@ -14,6 +14,7 @@ const TITLE_KEYS: Record<string, MessageKey> = {
   '/explore': 'topbar.title.explore',
   '/packages': 'topbar.title.packages',
   '/settings': 'topbar.title.settings',
+  '/nearby': 'topbar.title.nearby',
 };
 
 export default function TopBar() {

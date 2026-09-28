@@ -185,6 +185,14 @@ export default function PoolPage() {
         </Link>
       </div>
 
+      <Link
+        href="/nearby"
+        className="px-1 text-center text-[12px] font-bold"
+        style={{ color: 'var(--color-accent-700)' }}
+      >
+        {t('pool.nearbyEntry')}
+      </Link>
+
       {totalInPool === 0 && (
         <div
           className="fx-rise flex flex-col items-center gap-3 rounded-[20px] p-6 text-center"

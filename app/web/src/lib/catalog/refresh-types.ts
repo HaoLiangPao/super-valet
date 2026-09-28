@@ -122,3 +122,10 @@ export const REFRESH_BATCH_LIMIT = 20;
 
 /** 自动刷新的最小间隔：每天最多一次 */
 export const AUTO_REFRESH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 手动重扫一次最多做几个类目查询（design/0009 §4.2 的第三条节制条款）。
+ * S4 实现时补进来 —— 四条节制条款住在同一个文件里，才不会有人只看到三条。
+ * 自动刷新不做发现，所以这个上限只作用于手动重扫。
+ */
+export const MANUAL_DISCOVERY_QUERY_LIMIT = 8;

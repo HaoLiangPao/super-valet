@@ -153,6 +153,45 @@ export interface PreviewRequest { placeId: string; dishes?: DishMention[] }
 /** 任何端点出错时的统一形状；message 是给用户看的中文 */
 export interface ApiError { error: true; message: string }
 
+// ── 5b. 刷新引擎的两个端点（design/0009 §4.2，S4 新增）─────────────────
+
+/**
+ * 单条失败的形状。**批量端点绝不整批失败**：一家店抓不到就只标这一家，
+ * 其余照常返回 —— 「失败必须可见」的另一半是「失败不许连坐」。
+ * `code` 给客户端查 i18n 字典（design/0007 §4），`message` 是中文兜底。
+ */
+export interface RefreshItemError { message: string; code?: string }
+
+/**
+ * POST /api/refresh/details { placeIds } → { results, demo }
+ * 批量重拉事实。刻意**不做分类**：`primary` / `tags` 是我们和用户的判断，
+ * 刷新一次就被 LLM 覆盖是最招骂的那种 bug，而且能省掉每家一次 LLM 调用。
+ * 上限 `REFRESH_BATCH_LIMIT`，服务端硬校验（客户端的节制条款不算护栏）。
+ */
+export interface RefreshDetailsRequest { placeIds: string[] }
+export interface RefreshDetailsItem {
+  placeId: string;
+  details?: PlaceDetails;
+  error?: RefreshItemError;
+}
+export interface RefreshDetailsResponse { results: RefreshDetailsItem[]; demo: boolean }
+
+/**
+ * POST /api/refresh/discover { queries, bias? } → { results, demo }
+ * 按类目词 + 位置偏置找候选（**只返回候选，不入池**，ADR-0008）。
+ * 上限 `MANUAL_DISCOVERY_QUERY_LIMIT`，同样服务端硬校验。
+ */
+export interface RefreshDiscoverRequest {
+  queries: string[];
+  bias?: { lat: number; lng: number };
+}
+export interface RefreshDiscoverItem {
+  query: string;
+  candidates: PlaceCandidate[];
+  error?: RefreshItemError;
+}
+export interface RefreshDiscoverResponse { results: RefreshDiscoverItem[]; demo: boolean }
+
 /** 粘贴文本长度上限（design/0005 §6 的成本护栏），前后端都要校验 */
 export const MAX_NOTE_CHARS = 8000;
 

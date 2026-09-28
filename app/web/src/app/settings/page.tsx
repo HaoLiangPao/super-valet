@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import Link from 'next/link';
+
 import type { GpsFailure } from '@/lib/catalog/location';
 import { ANCHOR_LIST, loadLocationPrefs, requestGps, saveLocationPrefs } from '@/lib/catalog/location';
 import { localizedPool } from '@/lib/catalog/localize';
@@ -176,6 +178,9 @@ export default function SettingsPage() {
         <p className="px-1 text-[12px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
           {t('settings.radius.poolCount', { count: poolCount })}
         </p>
+        <Link href="/nearby" className="px-1 text-[12px] font-bold" style={{ color: 'var(--color-accent-700)' }}>
+          {t('settings.nearbyEntry')}
+        </Link>
       </section>
 
       <section className="flex flex-col gap-2.5">

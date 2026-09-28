@@ -8,13 +8,13 @@ import type { EngineState, FeedbackRecord, RollRecord } from '../src/lib/engine/
 import { CloudStore, openCloudStore } from '../src/lib/cloud/store';
 import type { CloudGateway } from '../src/lib/cloud/gateway';
 import {
-  archiveToRow, changedRows, factRowToRestaurant, feedbackToRow, indexBy, restaurantToFactRow,
-  rollToRow, rowToArchive, rowToFeedback, rowToRoll, rowsToState,
-  stateToCategoryRows, stateToRestaurantRows,
+  archiveToRow, changedRows, factRowToRestaurant, feedbackToRow, indexBy,
+  refreshReportToRow, restaurantToFactRow, rollToRow, rowToArchive, rowToFeedback,
+  rowToRefreshReport, rowToRoll, rowsToState, stateToCategoryRows, stateToRestaurantRows,
 } from '../src/lib/cloud/rows';
 import type {
   ArchiveRow, CategoryRow, DishRow, FeedbackRow, FetchLogRow, LocationPrefsRow, LocationPrefsWrite,
-  PoolRow, ProfileRow, RestaurantRow, RollRow, SelectionRow, SourceRow,
+  PoolRow, ProfileRow, RefreshReportRow, RestaurantRow, RollRow, SelectionRow, SourceRow,
 } from '../src/lib/cloud/rows';
 import { PERSONA_CATEGORY_PRIORS } from '../src/lib/profiles/personas';
 import { createProfile, setActiveProfile } from '../src/lib/profiles/profiles';
@@ -30,6 +30,7 @@ import {
   archiveRestaurant, archivedEntries, isArchived, poolWithArchived, restoreFromArchive,
 } from '../src/lib/catalog/archive';
 import { SEED_RESTAURANTS } from '../src/data/seed-restaurants';
+import type { RefreshReport } from '../src/lib/catalog/refresh-types';
 
 /* ------------------------------------------------------------------ *
  * 假 gateway：单测一律不打真网，也不 mock supabase-js 的链式 builder
@@ -48,6 +49,7 @@ interface FakeState {
   selection: Set<string>;
   prefs: LocationPrefsRow | null;
   archive: Map<string, ArchiveRow>;
+  refreshReports: Map<string, RefreshReportRow>;
 }
 
 interface FakeGateway extends CloudGateway {
@@ -73,6 +75,7 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     selection: seed.selection ?? new Set<string>(),
     prefs: seed.prefs ?? null,
     archive: seed.archive ?? new Map(),
+    refreshReports: seed.refreshReports ?? new Map(),
   };
   const calls: string[] = [];
   let failures = 0;
@@ -222,6 +225,17 @@ function fakeGateway(seed: Partial<FakeState> = {}): FakeGateway {
     async deleteArchive(placeId: string) {
       guard(`deleteArchive:${placeId}`);
       db.archive.delete(placeId);
+    },
+
+    async fetchRefreshReports() {
+      // 与真库同构：按 started_at 倒序（gateway 里显式排了序）
+      return [...db.refreshReports.values()]
+        .sort((a, b) => b.started_at.localeCompare(a.started_at));
+    },
+    async insertRefreshReport(row: RefreshReportRow) {
+      guard(`insertRefreshReport:${row.id}`);
+      // 主键是 (user_id, id)：写队列重试同一份报告是覆盖，不是第二行
+      db.refreshReports.set(row.id, row);
     },
   };
 }
@@ -950,5 +964,181 @@ describe('云模式的归档', () => {
     await store.flush();
     // 排队里那条被补落库
     expect(gw.db.archive.size).toBe(2);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * 9. 刷新报告（design/0009 §4.3、migration 0005）
+ * ------------------------------------------------------------------ */
+
+function sampleReport(over: Partial<RefreshReport> = {}): RefreshReport {
+  return {
+    id: 'rep-1',
+    trigger: 'manual',
+    startedAt: '2026-11-01T18:00:00.000Z',
+    finishedAt: '2026-11-01T18:00:12.000Z',
+    updated: [{
+      placeId: SEED_PLACE_IDS[0],
+      name: '海底捞',
+      changes: [{ field: 'rating', before: 4.8, after: 4.7 }],
+      businessStatus: 'OPERATIONAL',
+      fetchedAt: '2026-11-01T18:00:05.000Z',
+    }],
+    discovered: [],
+    needsAttention: [{
+      placeId: SEED_PLACE_IDS[1],
+      name: '廿一筷子',
+      businessStatus: 'CLOSED_PERMANENTLY',
+      suggestedReason: 'closed_permanently',
+    }],
+    failed: [{ placeId: SEED_PLACE_IDS[2], name: '某店', message: '网络问题，下次再试' }],
+    fetchCount: 3,
+    unchanged: 8,
+    ...over,
+  };
+}
+
+describe('刷新报告的行映射', () => {
+  it('汇总数进列、明细进 jsonb，往返不丢东西', () => {
+    const report = sampleReport();
+    const row = refreshReportToRow(report);
+    expect(row).toMatchObject({
+      id: 'rep-1',
+      trigger: 'manual',
+      started_at: report.startedAt,
+      finished_at: report.finishedAt,
+      updated_count: 1,
+      unchanged_count: 8,
+      discovered_count: 0,
+      attention_count: 1,
+      failed_count: 1,
+      fetch_count: 3,
+    });
+    expect(rowToRefreshReport(row)).toEqual(report);
+  });
+
+  it('列是权威的：jsonb 里的 id/trigger 与列冲突时听列的', () => {
+    const row = refreshReportToRow(sampleReport());
+    const tampered: RefreshReportRow = {
+      ...row,
+      report: { ...sampleReport(), id: '冒名的 id', trigger: 'auto', unchanged: 999 },
+    };
+    const back = rowToRefreshReport(tampered)!;
+    expect(back.id).toBe(row.id);
+    expect(back.trigger).toBe('manual');
+    expect(back.unchanged).toBe(row.unchanged_count);
+  });
+
+  it('jsonb 坏掉（不是对象）也还原得出一份可显示的报告', () => {
+    const row = { ...refreshReportToRow(sampleReport()), report: '坏数据' };
+    const back = rowToRefreshReport(row)!;
+    expect(back.id).toBe('rep-1');
+    expect(back.updated).toEqual([]);
+    expect(back.failed).toEqual([]);
+  });
+});
+
+describe('云模式的刷新报告', () => {
+  it('写 = 内存立刻生效 + 排队落库；读回来最近的在前', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    store.appendRefreshReport(sampleReport({ id: 'a', startedAt: '2026-11-01T10:00:00.000Z' }));
+    store.appendRefreshReport(sampleReport({ id: 'b', startedAt: '2026-11-02T10:00:00.000Z' }));
+    // 同步读立刻正确（不必等落库）
+    expect(store.loadRefreshReports().map((r) => r.id)).toEqual(['b', 'a']);
+    await store.flush();
+    expect(gw.db.refreshReports.size).toBe(2);
+    expect(gw.db.refreshReports.get('a')?.failed_count).toBe(1);
+
+    const again = await open(gw);
+    expect(again.loadRefreshReports().map((r) => r.id)).toEqual(['b', 'a']);
+    expect(again.loadRefreshReports()[0].needsAttention[0].suggestedReason)
+      .toBe('closed_permanently');
+    // 失败一条都没丢 —— 否则「更新了 12 家」就是假的
+    expect(again.loadRefreshReports()[0].failed[0].message).toBe('网络问题，下次再试');
+  });
+
+  it('写队列重试同一份报告不会变成两行', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    gw.failNext(2);  // 立即重试也失败 → 进补跑队列，flush 时补落库
+    store.appendRefreshReport(sampleReport({ id: 'once' }));
+    await store.flush();
+    expect(gw.db.refreshReports.size).toBe(1);
+    expect(gw.calls.filter((c) => c === 'insertRefreshReport:once').length).toBeGreaterThan(1);
+
+    // 同一份报告再落一次（重放）还是一行：主键 (user_id, id) + upsert
+    store.appendRefreshReport(sampleReport({ id: 'once', unchanged: 9 }));
+    await store.flush();
+    expect(gw.db.refreshReports.size).toBe(1);
+    expect(gw.db.refreshReports.get('once')?.unchanged_count).toBe(9);
+    expect(store.loadRefreshReports()).toHaveLength(1);
+  });
+
+  it('两个账号的刷新报告互不可见', async () => {
+    const gwA = fakeGateway();
+    const gwB = fakeGateway();
+
+    const a = await open(gwA);
+    setStoreBackend(a);
+    a.appendRefreshReport(sampleReport({ id: 'a-only' }));
+    await a.flush();
+
+    const b = await open(gwB);
+    setStoreBackend(b);
+    expect(b.loadRefreshReports()).toEqual([]);
+    expect(gwB.db.refreshReports.size).toBe(0);
+  });
+
+  it('游客态与云账号的刷新历史互不污染', async () => {
+    const guest = createProfile('游客', '🍚');
+    setActiveProfile(guest.id);
+    localBackend.appendRefreshReport(sampleReport({ id: 'guest-1' }));
+
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+    expect(store.loadRefreshReports()).toEqual([]);
+    store.appendRefreshReport(sampleReport({ id: 'cloud-1' }));
+    await store.flush();
+
+    setStoreBackend(null);
+    expect(localBackend.loadRefreshReports().map((r) => r.id)).toEqual(['guest-1']);
+  });
+
+  it('0005 还没迁移（读报告报错）→ 照常进得去，按「没有刷新历史」处理', async () => {
+    const gw = fakeGateway();
+    gw.fetchRefreshReports = async () => {
+      throw new Error('relation "refresh_reports" does not exist');
+    };
+
+    const store = await open(gw);
+    setStoreBackend(store);
+    expect(store.loadRefreshReports()).toEqual([]);
+    // 报告是观测用的：读不到也不能把人锁在门外
+    expect(localizedPool().restaurants).toHaveLength(15);
+    expect(effectiveSelection()).toHaveLength(15);
+  });
+
+  it('报告写入失败不影响本轮使用，恢复网络后补落库', async () => {
+    const gw = fakeGateway();
+    const store = await open(gw);
+    setStoreBackend(store);
+
+    gw.setFailing(true);
+    store.appendRefreshReport(sampleReport({ id: 'offline' }));
+    await store.flush();
+    // 内存态立刻正确：报告界面照样显示
+    expect(store.loadRefreshReports().map((r) => r.id)).toEqual(['offline']);
+    expect(gw.db.refreshReports.size).toBe(0);
+
+    gw.setFailing(false);
+    store.appendRefreshReport(sampleReport({ id: 'online' }));
+    await store.flush();
+    expect(gw.db.refreshReports.size).toBe(2);
   });
 });

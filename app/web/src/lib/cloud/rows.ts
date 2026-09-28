@@ -15,6 +15,8 @@ import { RADIUS_KM, defaultLocationPrefs } from '../catalog/types';
 import type { LocationPrefs, LocationSource, PoolSelection, RadiusOption } from '../catalog/types';
 import { toArchiveReason, toBusinessStatus } from '../catalog/availability';
 import type { ArchiveEntry, CatalogRestaurant } from '../catalog/availability';
+import { refreshCounts, sanitizeRefreshReport } from '../catalog/refresh-report';
+import type { RefreshReport } from '../catalog/refresh-types';
 
 /**
  * EngineState / RollRecord / FeedbackRecord 与 Supabase 行之间的纯映射。
@@ -577,4 +579,68 @@ export function rowToArchive(row: ArchiveRow): ArchiveEntry {
     // 不能因为一个脏枚举就把用户的归档整条丢掉
     reason: toArchiveReason(row.reason),
   };
+}
+
+/* ---------------------------------------------------------------- *
+ * 刷新报告（design/0009 §4.3）
+ *
+ * 一张表（supabase/migrations/0005_refresh_reports.sql）：
+ *   refresh_reports —— 主键 (user_id, id)，与 rolls 同构（id 是客户端 newId()）
+ *
+ * 汇总数各占一列、明细存 jsonb：ADR-0005 反对把**后验**存成 blob（中央可见性
+ * 要能直接查 α/β），但报告是一次事件的记录，明细形状随 Places 返回而变，
+ * 拆表只会得到一堆没人查的空表（`rolls.candidates_snapshot` 已是先例）。
+ * 「刷了几次 / 失败率多高 / 一共抓了几次」这些必须不解 JSON 就查得到，所以占列。
+ * ---------------------------------------------------------------- */
+
+export interface RefreshReportRow {
+  id: string;
+  trigger: string;
+  started_at: string;
+  finished_at: string;
+  updated_count: number;
+  unchanged_count: number;
+  discovered_count: number;
+  attention_count: number;
+  failed_count: number;
+  fetch_count: number;
+  /** 完整的 RefreshReport（jsonb）；读回来一律过 sanitizeRefreshReport() */
+  report: unknown;
+}
+
+export function refreshReportToRow(report: RefreshReport): RefreshReportRow {
+  const counts = refreshCounts(report);
+  return {
+    id: report.id,
+    trigger: report.trigger,
+    started_at: report.startedAt,
+    finished_at: report.finishedAt,
+    updated_count: counts.updated,
+    unchanged_count: counts.unchanged,
+    discovered_count: counts.discovered,
+    attention_count: counts.attention,
+    failed_count: counts.failed,
+    fetch_count: counts.fetches,
+    report,
+  };
+}
+
+/**
+ * 行 → 报告。**列是权威的**：`id` / `trigger` / 两个时间戳 / 两个计数取自列，
+ * 而不是 jsonb 里的同名字段 —— 列有 check 约束和索引，jsonb 没有。
+ * 脏到连 id 都没有的行返回 `null`（调用方丢掉），不让一条坏记录带崩刷新历史。
+ */
+export function rowToRefreshReport(row: RefreshReportRow): RefreshReport | null {
+  const detail = typeof row.report === 'object' && row.report !== null
+    ? (row.report as Record<string, unknown>)
+    : {};
+  return sanitizeRefreshReport({
+    ...detail,
+    id: row.id,
+    trigger: row.trigger,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    fetchCount: row.fetch_count,
+    unchanged: row.unchanged_count,
+  });
 }

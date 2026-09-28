@@ -11,11 +11,13 @@ import {
   fetchLogToRow,
   indexBy,
   locationPrefsToRow,
+  refreshReportToRow,
   rollToRow,
   rowToFeedback,
   rowToFetchLog,
   rowToLocationPrefs,
   rowToArchive,
+  rowToRefreshReport,
   rowToRoll,
   rowsToPool,
   rowsToSelection,
@@ -27,6 +29,8 @@ import {
 import type { CategoryRow, RestaurantRow } from './rows';
 import type { LocationPrefs, PoolSelection } from '../catalog/types';
 import type { ArchiveEntry } from '../catalog/availability';
+import { REFRESH_REPORT_LIMIT } from '../catalog/refresh-report';
+import type { RefreshReport } from '../catalog/refresh-types';
 
 export interface CloudIdentity {
   userId: string;
@@ -71,6 +75,7 @@ export class CloudStore implements StoreBackend {
   private selection: PoolSelection;
   private locationPrefs: LocationPrefs;
   private archive: ArchiveEntry[];
+  private refreshReports: RefreshReport[];
 
   /** 上一次成功推上去的行，用来做差分：整份 state 存进来，只推真正变了的行 */
   private lastRestaurantRows: Map<string, RestaurantRow>;
@@ -94,6 +99,7 @@ export class CloudStore implements StoreBackend {
       selection: PoolSelection;
       locationPrefs: LocationPrefs;
       archive: ArchiveEntry[];
+      refreshReports: RefreshReport[];
     },
   ) {
     this.identity = identity;
@@ -105,6 +111,7 @@ export class CloudStore implements StoreBackend {
     this.selection = snapshot.selection;
     this.locationPrefs = snapshot.locationPrefs;
     this.archive = snapshot.archive;
+    this.refreshReports = snapshot.refreshReports;
     this.lastRestaurantRows = indexBy(stateToRestaurantRows(this.state), (r) => r.place_id);
     this.lastCategoryRows = indexBy(stateToCategoryRows(this.state), (r) => r.category);
   }
@@ -254,6 +261,24 @@ export class CloudStore implements StoreBackend {
     });
   }
 
+  /**
+   * 刷新报告（design/0009 §4.3）。与归档同理是**逐条**追加，没有「整体替换」：
+   * 报告是只增不改的事件流，两个标签页各刷一次不该互相抹掉对方的报告。
+   */
+  loadRefreshReports(): RefreshReport[] {
+    return this.refreshReports.map((r) => clone(r));
+  }
+
+  appendRefreshReport(report: RefreshReport): void {
+    const copy = clone(report);
+    this.refreshReports = [copy, ...this.refreshReports.filter((r) => r.id !== copy.id)]
+      .slice(0, REFRESH_REPORT_LIMIT);
+    this.enqueue({
+      label: '刷新报告',
+      run: () => this.gateway.insertRefreshReport(refreshReportToRow(copy)),
+    });
+  }
+
   exportIdentity(): unknown {
     return {
       mode: 'cloud',
@@ -361,6 +386,7 @@ export async function openCloudStore(
 
   const [
     poolRows, dishRows, sourceRows, fetchLogRows, selectionRows, prefsRow, archiveRows,
+    reportRows,
   ] = await Promise.all([
     optional('餐厅池', () => gateway.fetchPool()),
     optional('菜品', () => gateway.fetchDishes()),
@@ -371,6 +397,10 @@ export async function openCloudStore(
     // 0004 迁移比部署晚一步时这张表还不存在 → 按「没有归档」处理。
     // **宁可多摇出一家已归档的店，也不能让人登录失败**（openCloudStore 的既定原则）
     optional('归档', () => gateway.fetchArchive()),
+    // 0005 迁移比部署晚一步时这张表还不存在 → 按「没有刷新历史」处理。
+    // 同一个 optional()：**报告读不到也不该让人登录失败**，
+    // 报告是观测用的，池子和摇一摇与它无关（openCloudStore 的既定原则）
+    optional('刷新报告', () => gateway.fetchRefreshReports()),
   ]);
 
   const identity: CloudIdentity = {
@@ -393,5 +423,8 @@ export async function openCloudStore(
     selection: rowsToSelection(selectionRows, prefsRow?.selection_set === true),
     locationPrefs: rowToLocationPrefs(prefsRow),
     archive: archiveRows.map(rowToArchive),
+    refreshReports: reportRows
+      .map(rowToRefreshReport)
+      .filter((r): r is RefreshReport => r !== null),
   });
 }

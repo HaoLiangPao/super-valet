@@ -1,0 +1,41 @@
+/*
+ * 雷达重扫的动效：扫描线绕圈 + 圆点依次点亮（design/0009 §4.1、S5 spec）。
+ * 组件私有 CSS module，不碰 globals.css 的 9 组 fx-*（CLAUDE.md §7：
+ * 动效的 opacity/forwards 只应该管自己这份，不与别处共享）。
+ *
+ * 命中区纪律：这里的 keyframes 只挂在“装饰层”（sweepLine / dotPing），
+ * 真正的点击目标（dotHit）是静止元素，避免 Playwright/触屏点不中。
+ */
+
+@keyframes sweepRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dotPing {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.55); }
+}
+
+.sweepLine {
+  transform-origin: 150px 150px;
+  animation: sweepRotate 2.4s linear infinite;
+  pointer-events: none;
+}
+
+.dotPing {
+  transform-origin: center;
+  animation: dotPing 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.dotHit {
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweepLine,
+  .dotPing {
+    animation: none !important;
+  }
+}

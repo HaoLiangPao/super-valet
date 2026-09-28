@@ -311,6 +311,83 @@ export const zh = {
 
   // ── 池子引导（design/0008 §3 S2）───────────────────────────────────
   'home.lowPoolHint.text': '你的池子只有 {count} 家 —— 加个套餐，或者自己找几家',
+
+  // ── 附近雷达（design/0009 §4.1/4.3/4.5，S5）────────────────────────
+  'topbar.title.nearby': '附近雷达',
+  'pool.nearbyEntry': '附近雷达 →',
+  'settings.nearbyEntry': '去看附近雷达 →',
+
+  'nearby.radius.title': '附近范围',
+  'nearby.radius.custom': '自定义',
+  'nearby.radius.customPlaceholder': '1–50',
+  'nearby.radius.customApply': '应用',
+  'nearby.radius.customInvalid': '请输入 1–50 之间的数字',
+  'nearby.radius.customActive': '自定义 {km}km',
+
+  'nearby.radar.north': '北',
+  'nearby.radar.you': '你在这里',
+  'nearby.radar.scanning': '扫描中…',
+  'nearby.radar.legendPool': '池子里的店',
+  'nearby.radar.legendDiscovered': '新发现',
+  'nearby.radar.empty': '当前范围内没有店可显示',
+
+  'nearby.list.title': '附近列表',
+  'nearby.list.empty': '当前范围内没有店',
+  'nearby.list.widen': '放宽范围',
+  'nearby.list.filteredOutHint': '还有 {count} 家超出当前范围',
+  'nearby.list.drive': '开车约 {minutes} 分钟',
+  'nearby.list.walk': '步行约 {minutes} 分钟',
+  'nearby.list.estimateNote': '按直线距离估算',
+
+  'nearby.businessStatus.operational': '正常营业',
+  'nearby.businessStatus.closedTemporarily': '暂停营业',
+  'nearby.businessStatus.closedPermanently': '永久停业',
+  'nearby.status.openNow': '营业中',
+  'nearby.status.closedNow': '已打烊',
+
+  'nearby.rescan.button': '重新扫描',
+  'nearby.rescan.scanning': '扫描中…',
+  'nearby.rescan.error': '重新扫描失败，请稍后再试',
+
+  'nearby.report.title': '刷新报告',
+  'nearby.report.trigger.manual': '手动重扫',
+  'nearby.report.trigger.auto': '自动刷新',
+  'nearby.report.meta': '{trigger} · {time} · 用时 {seconds} 秒',
+  'nearby.report.updatedCount': '更新了 {count} 家',
+  'nearby.report.discoveredCount': '新发现 {count} 家',
+  'nearby.report.attentionCount': '需要你确认 {count} 家',
+  'nearby.report.unchangedCount': '没有变化 {count} 家',
+  'nearby.report.failedCount': '失败 {count} 家',
+  'nearby.report.empty': '还没重新扫描过',
+  'nearby.report.viewHistory': '查看历史报告',
+  'nearby.report.backToLatest': '返回最新报告',
+  'nearby.report.historyTitle': '历史报告',
+  'nearby.report.historyEmpty': '还没有历史报告',
+
+  'nearby.field.name': '店名',
+  'nearby.field.address': '地址',
+  'nearby.field.rating': '评分',
+  'nearby.field.ratingCount': '评价数',
+  'nearby.field.priceLevel': '价位',
+  'nearby.field.dineIn': '堂食',
+  'nearby.field.closedDays': '休息日',
+  'nearby.field.serviceWindows': '营业时间',
+  'nearby.field.businessStatus': '营业状态',
+  'nearby.field.yes': '是',
+  'nearby.field.no': '否',
+  'nearby.report.structuralChanged': '{field}变了',
+  'nearby.report.diffLine': '{field} {before}→{after}',
+
+  'nearby.discovered.addAll': '全部加入池子',
+  'nearby.discovered.addSelected': '加入已选 {count} 家',
+  'nearby.discovered.added': '已加入',
+  'nearby.discovered.distance': '距你 {km}km',
+
+  'nearby.attention.statusPrefix': '显示「{status}」',
+  'nearby.attention.archive': '归档',
+  'nearby.attention.remove': '移出池子',
+  'nearby.attention.keep': '先留着',
+  'nearby.attention.decided': '已处理',
 } as const;
 
 export type MessageKey = keyof typeof zh;
