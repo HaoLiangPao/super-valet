@@ -241,7 +241,8 @@ export const localBackend: StoreBackend = {
   },
   appendFetchLog(entry) {
     // 台账只用于排查与成本观察，不必无限增长：留最近 200 条
-    write('fetchlog.v1', [entry, ...this.loadFetchLog()].slice(0, 200));
+    // 一次手动重扫最多写约 36 行；200 条只够 5~6 次就会把 EXPLORE 的导入台账挤掉
+    write('fetchlog.v1', [entry, ...this.loadFetchLog()].slice(0, 500));
   },
 };
 

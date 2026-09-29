@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { POST as detailsRoute } from '../src/app/api/refresh/details/route';
 import { POST as discoverRoute } from '../src/app/api/refresh/discover/route';
+import { POST as previewRoute } from '../src/app/api/explore/preview/route';
 import {
   MANUAL_DISCOVERY_QUERY_LIMIT, REFRESH_BATCH_LIMIT,
 } from '../src/lib/catalog/refresh-types';
 import { FIXTURE_PLACES } from '../src/lib/places/fixture';
-import { PLACES_KEY_ENV } from '../src/lib/places/providers';
+import { LLM_KEY_ENV, PLACES_KEY_ENV } from '../src/lib/places/providers';
+import { httpRefreshPort } from '../src/lib/places/refresh-fetch';
 import type {
   ApiError, RefreshDetailsResponse, RefreshDiscoverResponse,
 } from '../src/lib/places/contract';
@@ -143,5 +145,80 @@ describe('POST /api/refresh/discover', () => {
   it('不给 bias 也能跑（退回导入锚点）', async () => {
     const res = await discoverRoute(post('http://t/api/refresh/discover', { queries: ['火锅'] }));
     expect(res.status).toBe(200);
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * httpRefreshPort ↔ Route Handler 的对接（两半必须说同一种话）
+ * ------------------------------------------------------------------ */
+
+describe('httpRefreshPort 与端点对接', () => {
+  let savedFetch: typeof globalThis.fetch;
+  let savedLlmKey: string | undefined;
+
+  beforeEach(() => {
+    savedLlmKey = process.env[LLM_KEY_ENV];
+    delete process.env[LLM_KEY_ENV];
+    savedFetch = globalThis.fetch;
+    // 把 fetch 接到真正的 Route Handler 上：端口 → HTTP body → 路由校验 →
+    // fixture provider → 响应 JSON → 端口解析，整条线在进程内跑通，**零配额**。
+    globalThis.fetch = (async (input: string, init?: RequestInit) => {
+      const url = String(input);
+      const req = new Request(`http://test${url}`, init);
+      if (url.startsWith('/api/refresh/details')) return detailsRoute(req);
+      if (url.startsWith('/api/refresh/discover')) return discoverRoute(req);
+      if (url.startsWith('/api/explore/preview')) return previewRoute(req);
+      throw new Error(`没接上的端点: ${url}`);
+    }) as typeof globalThis.fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = savedFetch;
+    if (savedLlmKey === undefined) delete process.env[LLM_KEY_ENV];
+    else process.env[LLM_KEY_ENV] = savedLlmKey;
+  });
+
+  it('detailsBatch 拿到事实，失败的那一条带着可读的短句', async () => {
+    const port = httpRefreshPort();
+    const outcomes = await port.detailsBatch([HOTPOT.placeId, '查无此店']);
+    expect(outcomes).toHaveLength(2);
+    const ok = outcomes.find((o) => o.placeId === HOTPOT.placeId)!;
+    expect(ok.details?.rating).toBe(HOTPOT.rating);
+    expect(ok.error).toBeUndefined();
+    const bad = outcomes.find((o) => o.placeId === '查无此店')!;
+    expect(bad.details).toBeUndefined();
+    expect(bad.error).toBeTruthy();
+    // 服务端告知这是 fixture → 台账如实记 provider
+    expect(port.providerName).toBe('fixture');
+  });
+
+  it('discover + preview 串起来：候选 → 已分类的餐厅', async () => {
+    const port = httpRefreshPort();
+    const found = await port.discover(['火锅'], { lat: 43.8536, lng: -79.3227 });
+    expect(found).toHaveLength(1);
+    expect(found[0].candidates.map((c) => c.placeId)).toContain(HOTPOT.placeId);
+
+    const preview = await port.preview(HOTPOT.placeId);
+    expect(preview.restaurant.placeId).toBe(HOTPOT.placeId);
+    expect(preview.restaurant.primary).toBeTruthy();
+    expect(preview.demo).toBe(true);
+  });
+
+  it('整批失败（端点 4xx）抛出可读的错误，让流水线把每一家都记成失败', async () => {
+    const port = httpRefreshPort();
+    const tooMany = Array.from({ length: REFRESH_BATCH_LIMIT + 1 }, (_, i) => `p-${i}`);
+    // 端口按 design/0007 §4 优先查 i18n 字典（`apiError.validation.too_long`），
+    // 所以抛出来的是字典里那句而不是服务端的「一次最多刷新 20 家」——
+    // 用户碰不到这条（界面永远按 REFRESH_BATCH_LIMIT 切批），它是给开发者的护栏。
+    await expect(port.detailsBatch(tooMany)).rejects.toThrow(/太长/);
+  });
+
+  it('空输入不发请求（省一次往返）', async () => {
+    const port = httpRefreshPort();
+    globalThis.fetch = (() => {
+      throw new Error('不该发请求');
+    }) as typeof globalThis.fetch;
+    expect(await port.detailsBatch([])).toEqual([]);
+    expect(await port.discover([], { lat: 0, lng: 0 })).toEqual([]);
   });
 });

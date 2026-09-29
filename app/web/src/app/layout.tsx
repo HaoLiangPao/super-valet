@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Caprasimo, Figtree } from "next/font/google";
 import "./globals.css";
 import AuthGate from "@/components/AuthGate";
+import AutoRefresh from "@/components/AutoRefresh";
 import BottomNav from "@/components/BottomNav";
 import TopBar from "@/components/TopBar";
 import { LocaleProvider } from "@/lib/i18n";
@@ -31,6 +32,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <LocaleProvider>
           <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-5 pt-7 pb-24">
             <AuthGate>
+              {/* 身份就绪后才跑后台刷新；它不渲染任何东西 */}
+              <AutoRefresh />
               <TopBar />
               {children}
             </AuthGate>

@@ -849,12 +849,23 @@ describe('刷新改变的是摇一摇看到的东西', () => {
         details: detailsOf(seed(0), { rating: 2.2, name: '改过名的店', closedDays: [1, 2] }),
       }),
     });
-    await runRefresh('manual', { port, prefs: atDowntown(), now: T0 });
+    const report = await runRefresh('manual', { port, prefs: atDowntown(), now: T0 });
 
     const pool = localizedPool(atDowntown({ radius: 'ALL' }));
     const got = pool.restaurants.find((r) => r.placeId === target)!;
     expect(got.rating).toBe(2.2);
-    expect(got.name).toBe('改过名的店');
     expect(got.closedDays).toEqual([1, 2]);
+
+    // 店名**刻意不覆盖**（创始人裁决 2026-09-28，见 mergeFacts 的注释）：
+    // Places 的 displayName 随语言与格式漂移，悄悄冲掉人工校对过的名字
+    // 是零决策价值的困惑。
+    expect(got.name).toBe(seed(0).name);
+
+    // 但改名必须**照样出现在报告里**，让用户自己判断要不要重新导入 ——
+    // 「不自动应用」和「假装没发生」是两回事。
+    const entry = report!.updated.find((u) => u.placeId === target)!;
+    const nameChange = entry.changes.find((c) => c.field === 'name')!;
+    expect(nameChange.before).toBe(seed(0).name);
+    expect(nameChange.after).toBe('改过名的店');
   });
 });

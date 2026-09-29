@@ -49,4 +49,4 @@
 
 ---
 
-共 22 篇文档 · 索引生成于 2026-09-27 · 由 `scripts/gen_docs_index.py` 维护
+共 22 篇文档 · 索引生成于 2026-09-28 · 由 `scripts/gen_docs_index.py` 维护

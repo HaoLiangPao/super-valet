@@ -176,7 +176,12 @@ export function mergeFacts(before: CatalogRestaurant, after: PlaceDetails): Cata
   const geo = distanceFrom(after.lat, after.lng);
   const merged: CatalogRestaurant = {
     ...before,
-    name: after.name,
+    // ⚠️ `name` 刻意**不覆盖**（创始人裁决 2026-09-28）：
+    // 店名是用户识别餐厅的把手，而 Places 的 displayName 随 languageCode 与
+    // 格式漂移（「云尚米线」→「Yunshang Rice Noodle(Unionville)云尚米线」），
+    // 悄悄换掉是零决策价值的困惑，还会把人工校对过的中文名冲掉。
+    // 真正的改名是罕见事件 —— diff 里**照样报告**这个变化（见 `diffFacts`），
+    // 让用户自己判断要不要重新导入，而不是替他决定。
     address: after.address,
     lat: after.lat,
     lng: after.lng,

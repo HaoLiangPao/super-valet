@@ -201,7 +201,7 @@ export class CloudStore implements StoreBackend {
   }
 
   appendFetchLog(entry: FetchLogEntry): void {
-    this.fetchLog = [clone(entry), ...this.fetchLog].slice(0, 200);
+    this.fetchLog = [clone(entry), ...this.fetchLog].slice(0, 500);
     const row = fetchLogToRow(entry);
     this.enqueue({
       label: '记录抓取台账',
