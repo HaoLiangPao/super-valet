@@ -5,6 +5,12 @@
 [`INSTRUCTION.md`](INSTRUCTION.md)；机械步骤在 `.claude/skills/`。
 **同一条规则只写在一个地方**，其余地方只做链接 —— 重复的规则一定会漂移。
 
+## 接手 / Picking up
+
+新会话第一件事：读 [`docs/research/0005-handover.md`](docs/research/0005-handover.md)
+—— 现在到哪一步、下一步做什么、刚踩出来的坑、等 Hao 裁决的事都在那里。
+本文件只写常驻规则，不写进度。
+
 ## 语言 / Language
 
 **所有回复一律使用中文**（代码、命令、文件路径、专有名词除外）。
