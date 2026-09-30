@@ -1,10 +1,10 @@
 ---
 id: 0001
 title: 「今天吃什么」产品企划书 v1.0
-status: draft
+status: accepted
 author: HaoLiangPao
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-30
 superseded_by:
 related: [design/0002, ADR-0002, ADR-0003]
 tags: [product, mvp, bandit]
@@ -448,3 +448,23 @@ feedbacks (
 ```
  
 界面上任何一个不服务于「两秒内做出决定」的元素，都应该被删掉或藏进二级页面。
+
+## 裁决记录
+
+Hao 2026-09-30 裁决，关掉 OPEN-QUESTIONS 里挂在本文名下的两题：
+
+- **Q4 推送/反馈通道 → 不做推送。** 主交互是普通移动网页；反馈靠下次打开时补问
+  「上次那家怎么样」（已上线）。依据是 research/0002 发现 4：回收率 30% 与 90%
+  在 180 天尺度上对所有指标无影响，学习主要靠摇的当场 skip 信号。
+  本文 Web Push 的设想不执行；等 pilot 数据暴露「忘了用」的频率后再另开新题。
+- **Q6 摇一摇 → 是核心交互。** 产品就是照这个建的；「到点直接推送结果」随 Q4 一并搁置。
+
+状态转 `accepted` 而不是 `implemented`：V1 已上线，但本文的 V2（上下文 Bandit）
+与 V3（LLM 重排）没有做，也不该在样本量撑得起之前做（INSTRUCTION.md §0 第 1 条）。
+
+## 变更记录
+
+| 日期 | 改了什么 | 谁 |
+| ---- | -------- | -- |
+| 2026-09-17 | 初稿（产品企划书） | HaoLiangPao |
+| 2026-09-30 | Hao 裁决：`draft` → `accepted`；补裁决记录（Q4、Q6） | claude-opus-5-5 |

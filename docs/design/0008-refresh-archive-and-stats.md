@@ -4,7 +4,7 @@ title: 路线图：池子引导、月度刷新与雷达重扫、歇业归档、�
 status: accepted
 author: claude-opus-5
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-30
 superseded_by:
 related: [design/0005, design/0006, design/0007, ADR-0008, ADR-0009]
 tags: [roadmap, refresh, archive, stats]
@@ -125,9 +125,11 @@ tags: [roadmap, refresh, archive, stats]
   **缓解:** **永不自动归档**，一律问用户；提供「先留着」选项。
 - **Open:** 归档的店要不要参与「你最爱的餐厅」统计？本设计说要（否则十年老店倒闭后
   统计里凭空消失）。Hao 若不同意再改。
+  → **已定：要。** ADR-0009 写明归档的店计入统计，Hao 2026-09-30 转 accepted。
 
 ## 5. 变更记录
 
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-27 | 初稿：七步路线图与各步设计 | claude-opus-5 |
+| 2026-09-30 | S1–S5 已上线，S6/S7 未做，状态保持 `accepted`；§4 的 Open 项随 ADR-0009 accepted 落定；Q10 关闭 | claude-opus-5-5 |

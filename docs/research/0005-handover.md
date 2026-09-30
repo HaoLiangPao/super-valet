@@ -4,7 +4,7 @@ title: 交接笔记：Round 4–7 收尾与下一任创始人的接手清单
 status: review
 author: claude-opus-5
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-09-30
 superseded_by:
 related: [design/0008, design/0009, ADR-0008, ADR-0009]
 tags: [handover, report]
@@ -65,21 +65,21 @@ tags: [handover, report]
 
 ## 4. 等 Hao 裁决的事（别自行决定）
 
-- **4 条 ADR 仍是 `proposed`**：0003（技术栈，三项争议）、0006（账号架构）、
-  0008（目录/池子分离）、0009（可用性与归档）。数据模型已按 0008/0009 落地且可逆。
-- **design/0001、0002 仍挂 `draft`**，但整个产品是照着它们建的 —— 状态不诚实，
-  建议转 `accepted` 或 `implemented`。
-- **[`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) 有 Q2–Q13 共 10 条**，其中：
-  - **Q11**（发现半径跟着「不限」扫遍全城，约 3 行改动）—— 我建议先修，
-    每次重扫都在烧配额并往池子里塞噪音。
-  - Q12（刷新失败的兜底文案是中文硬编码，英文界面会看到中文）
-  - Q13（归档的店不刷新，重开了不会被发现 —— 建议在 S6 里给「查一下重开没」按钮）
+> **2026-09-30 更新：本节已清空，待办一律看 [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md)。**
+> Hao 当天把这里列的事逐条裁决了：ADR-0006/0007/0008/0009 转 `accepted`
+> （原文写「4 条 proposed」漏数了 0007，实际 5 条）；ADR-0003 因正文与现实不符，
+> 修订后仍 `proposed` 待复核；design/0001、0002 转 `accepted`，
+> 其余已上线的 design 转 `implemented`；Q2–Q6、Q10 关闭
+> （原文写「共 10 条」，实际 11 条）；Q8、Q9、Q11–Q13 保留在台账里。
+> 权限也重新定了一遍，见 `CLAUDE.md` §授权状态。
 
 ## 5. 杂项
 
-- **1.3 GB 临时文件没删掉**：`/tmp/claude-1000/-home-hao-Desktop-github-supper-valet/
+- ~~**1.3 GB 临时文件没删掉**：`/tmp/claude-1000/-home-hao-Desktop-github-supper-valet/
   720e881f-.../scratchpad/{headcheck,buildcheck}`。`rm -rf` 被权限规则挡了
-  （路径以 `/tmp` 开头命中 `Bash(rm -rf /*)`），没绕过，需要 Hao 手动删。
+  （路径以 `/tmp` 开头命中 `Bash(rm -rf /*)`），没绕过，需要 Hao 手动删。~~
+  **2026-09-30：已不存在，不用管。** 那个会话的整个临时目录都没了
+  （`/tmp` 下本项目只剩 5 个空的会话目录，合计 4 KB），是系统清 `/tmp` 时带走的。
 - **迁移怎么跑**：`node scripts/migrate.mjs <file>.sql`，或 Supabase Management API
   （两条路都验证可用，凭证在 `.env.local`）。
 - **目录怎么重建**：`npm run dev` 之后 `node scripts/build-catalog.mjs`
@@ -93,3 +93,4 @@ tags: [handover, report]
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-29 | Round 4–7 收尾与交接 | claude-opus-5 |
+| 2026-09-30 | §4 清空并指向台账（Hao 已逐条裁决）；§5 临时文件一条作废 | claude-opus-5-5 |

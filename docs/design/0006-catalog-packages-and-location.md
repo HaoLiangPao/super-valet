@@ -1,10 +1,10 @@
 ---
 id: 0006
 title: 餐厅目录、预设套餐、GPS 半径与池子管理
-status: accepted
+status: implemented
 author: claude-opus-5
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-09-30
 superseded_by:
 related: [ADR-0008, design/0002, design/0005, research/0001]
 tags: [pool, packages, geo, catalog]
@@ -141,3 +141,4 @@ Unit C（前端）：池子管理、套餐浏览、位置与半径设置界面�
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-26 | 初稿并开工（Round 5） | claude-opus-5 |
+| 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |

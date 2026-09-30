@@ -1,10 +1,10 @@
 ---
 id: 0003
 title: P0 Web App：Next.js 脚手架 + 两层 Bandit 引擎 + 牌堆 UI（本地优先）
-status: accepted
+status: implemented
 author: claude-fable-5
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-30
 superseded_by:
 related: [design/0001, design/0002, ADR-0003, ADR-0004, ADR-0005, research/0002]
 tags: [p0, web, engine]
@@ -89,3 +89,4 @@ Unit 1 脚手架 → Unit 2 引擎+测试 → Unit 3 UI → Unit 4 build+Playwri
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-17 | 初稿并开工（自动驾驶 Unit 0） | claude-fable-5 |
+| 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |

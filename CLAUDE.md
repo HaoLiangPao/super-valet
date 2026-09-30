@@ -7,8 +7,14 @@
 
 ## 接手 / Picking up
 
-新会话第一件事：读 [`docs/research/0005-handover.md`](docs/research/0005-handover.md)
-—— 现在到哪一步、下一步做什么、刚踩出来的坑、等 Hao 裁决的事都在那里。
+新会话第一件事，读两份文件：
+
+- [`docs/research/0005-handover.md`](docs/research/0005-handover.md)
+  —— 现在到哪一步、下一步做什么、刚踩出来的坑。
+- [`docs/OPEN-QUESTIONS.md`](docs/OPEN-QUESTIONS.md) —— **唯一的待办台账**：
+  等 Hao 裁决的、等 Hao 动手的、创始人欠着的，全在这一个文件里。
+  别处（交接笔记、收尾报告、GO-LIVE、ADR）只许链接过去，不许另列清单。
+
 本文件只写常驻规则，不写进度。
 
 ## 语言 / Language
@@ -60,16 +66,28 @@ Hao 授权创始人按「公司」方式调度子代理，组织规则自定、�
 
 ## 授权状态 / Standing authorization
 
-当前有效（Hao 2026-09-17 起授予，2026-09-18 扩容）：
+当前有效（Hao 2026-09-17 起授予，2026-09-18 扩容，**2026-09-30 逐条重新裁决**）。
+本节是权限的**唯一出处**，INSTRUCTION.md 与 skill 只链接到这里：
 
-- **范围**：只在本仓库目录内活动，不读写目录外文件。
-- **自主 commit**：可以，且应该 —— 每个工作单元一个 commit。
-- **push**：只能推 `claude-version`（权限文件里 `main` 与强推已明确 deny）。
-  **与 Codex 团队竞赛中：绝不查看对方的工作** —— 根目录 `AGENTS.md`、
-  `.agents/`、`codex/*` 分支一律不读不改。
-- **部署**：Vercel 生产部署已授权（凭证与采购状态见 [`docs/GO-LIVE.md`](docs/GO-LIVE.md)）。
+| 动作 | 权限 |
+| ---- | ---- |
+| 读写文件 | 只在本仓库目录内，不读写目录外文件 |
+| `git commit` | **自主**，且应该 —— 每个工作单元一个 commit |
+| `git push` | **每次都要 Hao 当次批准**；只推 `claude-version`，`main` 与强推已 deny |
+| Vercel **预览**部署 | **自主**（`npx vercel deploy --yes`，不带 `--prod`） |
+| Vercel **生产**部署 | **每次都要 Hao 当次批准** |
+| 线上数据库迁移 | 只增不减的（加表、加列、加策略、加视图）**自主**；删表、删列、改写或删除已有数据的，**每次都要 Hao 当次批准** |
+| 线上只读核对 | **自主**，走 `node scripts/prod-status.mjs` |
+
+「当次批准」= Hao 在这一次对话里对这一次动作点头；上一次的批准不延续到下一次。
+需要批准的动作在 `.claude/settings.local.json` 里挂了 `ask`，会弹确认。
+
+- **竞赛纪律**：与 Codex 团队竞赛中，**绝不查看对方的工作** —— 根目录 `AGENTS.md`、
+  `.agents/`、`codex/*` 分支一律不读不改。没有权限规则拦着，靠自觉（Hao 2026-09-30：「I trust you」）。
+- **公开注册保持开放**，直到 Hao 邀请完 pilot 用户并说收口（Hao 2026-09-30）。
 - **裁决规则**：已 accepted 的 ADR 照办；未决项按创始人立场做**可逆**的默认实现，
   新决策一律 `status: proposed`，**绝不自行转 accepted**。
+  凭证与采购状态见 [`docs/GO-LIVE.md`](docs/GO-LIVE.md)。
 - **秘密**：凭证只存 `app/web/.env.local`（已 gitignore），
   **永不进入仓库、commit message、报告或对话**。
 
@@ -94,4 +112,4 @@ Hao 授权创始人按「公司」方式调度子代理，组织规则自定、�
 - 每个工作单元一个 commit，**CI 绿了再提交**。
 - commit message 用英文：标题写做了什么，正文写**为什么**以及
   「谁做的、谁验收的、验收证据是什么」。
-- 只推 `claude-version`；`main` 由 Hao 自己掌管。
+- push 的权限见上面「授权状态」；`main` 由 Hao 自己掌管。

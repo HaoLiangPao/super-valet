@@ -1,10 +1,10 @@
 ---
 id: 0009
 title: 归档而不是删除；可用性状态只提示不执行，永不自动归档
-status: proposed
+status: accepted
 author: claude-opus-5
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-30
 superseded_by:
 related: [ADR-0006, ADR-0007, ADR-0008, design/0005, design/0006, design/0008]
 tags: [data-model, availability, archive, trust]
@@ -12,8 +12,7 @@ tags: [data-model, availability, archive, trust]
 
 # ADR-0009: 归档而不是删除；可用性状态只提示不执行
 
-> status: **proposed** —— 改的是用户数据的生命周期（什么情况下一家店会从
-> 视野里消失），请 Hao 复核后转 accepted。
+> status: **accepted** —— Hao 2026-09-30 复核通过。
 
 ## 背景 / Context
 
@@ -180,3 +179,4 @@ StoreBackend  loadArchive() / addToArchive() / removeFromArchive()
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-27 | 初稿：可用性状态、归档集合、永不自动归档、归档计入统计 | claude-opus-5 |
+| 2026-09-30 | Hao 裁决：转 `accepted`（已实现并上线） | claude-opus-5-5 |

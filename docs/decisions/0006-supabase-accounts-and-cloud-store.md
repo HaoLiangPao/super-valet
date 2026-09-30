@@ -1,10 +1,10 @@
 ---
 id: 0006
 title: 试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留
-status: proposed
+status: accepted
 author: claude-opus-5
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-30
 superseded_by:
 related: [design/0001, design/0004, ADR-0003, ADR-0005]
 tags: [auth, schema, rls, supabase, storage]
@@ -164,10 +164,12 @@ engine/store.ts（8 个同步函数，签名不变）
   已配到 Vercel 的 production / preview / development。
 - 试玩账号：`test+1@supper-valet.local`（中餐控）、`test+2@…`（西餐控）、
   `test+3@…`（从零开始）为本轮验证账号，可随时删。
-- **未 commit、未部署生产**，等创始人验收 + QA 复检后统一做。
+- 已 commit（`05e9f0f`）并部署生产（2026-09-18）。
+- 公开注册**故意保持开放**，等 Hao 邀请完 pilot 用户后收口（见 OPEN-QUESTIONS H1）。
 
 ## 变更记录 / Changelog
 
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-18 | 初稿：认证方式、schema、RLS、存储适配层、不迁移本地数据 | claude-opus-5 |
+| 2026-09-30 | Hao 裁决：转 `accepted`（已实现并上线）；落地状态改为现实 | claude-opus-5-5 |

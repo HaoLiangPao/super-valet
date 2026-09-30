@@ -10,15 +10,15 @@
 
 | # | 标题 | 状态 | 作者 | 更新 |
 | --- | --- | --- | --- | --- |
-| 0001 | [「今天吃什么」产品企划书 v1.0](design/0001-product-plan.md) | 📝 draft | HaoLiangPao | 2026-09-17 |
-| 0002 | [GTA 菜系分类体系与距离模块规格 v1](design/0002-cuisine-taxonomy-and-distance.md) | 📝 draft | HaoLiangPao | 2026-09-17 |
-| 0003 | [P0 Web App：Next.js 脚手架 + 两层 Bandit 引擎 + 牌堆 UI（本地优先）](design/0003-p0-web-app.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
-| 0004 | [第二轮：设计保真 UI（Organic + 动效）+ 多 Profile 隔离 + Vercel 就绪](design/0004-fidelity-ui-and-profiles.md) | ✅ accepted | claude-fable-5 | 2026-09-18 |
-| 0005 | [EXPLORE 页：按店名或粘贴笔记导入餐厅](design/0005-explore-import.md) | ✅ accepted | claude-opus-5 | 2026-09-20 |
-| 0006 | [餐厅目录、预设套餐、GPS 半径与池子管理](design/0006-catalog-packages-and-location.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
-| 0007 | [界面语言支持：默认简体中文，支持英文](design/0007-i18n.md) | ✅ accepted | claude-opus-5 | 2026-09-26 |
-| 0008 | [路线图：池子引导、月度刷新与雷达重扫、歇业归档、行为统计](design/0008-refresh-archive-and-stats.md) | ✅ accepted | claude-opus-5 | 2026-09-27 |
-| 0009 | [S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算](design/0009-refresh-radar-and-travel-time.md) | ✅ accepted | claude-opus-5 | 2026-09-28 |
+| 0001 | [「今天吃什么」产品企划书 v1.0](design/0001-product-plan.md) | ✅ accepted | HaoLiangPao | 2026-09-30 |
+| 0002 | [GTA 菜系分类体系与距离模块规格 v1](design/0002-cuisine-taxonomy-and-distance.md) | ✅ accepted | HaoLiangPao | 2026-09-30 |
+| 0003 | [P0 Web App：Next.js 脚手架 + 两层 Bandit 引擎 + 牌堆 UI（本地优先）](design/0003-p0-web-app.md) | 🚢 implemented | claude-fable-5 | 2026-09-30 |
+| 0004 | [第二轮：设计保真 UI（Organic + 动效）+ 多 Profile 隔离 + Vercel 就绪](design/0004-fidelity-ui-and-profiles.md) | 🚢 implemented | claude-fable-5 | 2026-09-30 |
+| 0005 | [EXPLORE 页：按店名或粘贴笔记导入餐厅](design/0005-explore-import.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
+| 0006 | [餐厅目录、预设套餐、GPS 半径与池子管理](design/0006-catalog-packages-and-location.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
+| 0007 | [界面语言支持：默认简体中文，支持英文](design/0007-i18n.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
+| 0008 | [路线图：池子引导、月度刷新与雷达重扫、歇业归档、行为统计](design/0008-refresh-archive-and-stats.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
+| 0009 | [S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算](design/0009-refresh-radar-and-travel-time.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
 
 ## Architecture Decisions (ADR)
 
@@ -28,13 +28,13 @@
 | --- | --- | --- | --- | --- |
 | 0001 | [用 ADR 记录架构决策](decisions/0001-record-architecture-decisions.md) | ✅ accepted | HaoLiangPao | 2026-08-25 |
 | 0002 | [把推荐问题建模为 Multi-Armed Bandit](decisions/0002-model-recommendation-as-bandit.md) | ✅ accepted | HaoLiangPao | 2026-09-17 |
-| 0003 | [技术栈：Next.js 15 + Supabase + Drizzle + Vercel（PWA 形态）](decisions/0003-tech-stack.md) | 📝 proposed | HaoLiangPao | 2026-09-17 |
+| 0003 | [技术栈：Next.js + Supabase + Vercel（移动网页形态）](decisions/0003-tech-stack.md) | 📝 proposed | HaoLiangPao | 2026-09-30 |
 | 0004 | [V1 范围只做晚餐，推荐内核对餐次无感知](decisions/0004-dinner-first-meal-agnostic-core.md) | ✅ accepted | HaoLiangPao | 2026-09-17 |
 | 0005 | [两层 Bandit：菜系类别层进 schema，打分用软乘积](decisions/0005-two-layer-bandit-soft-product.md) | ✅ accepted | claude-fable-5 | 2026-09-17 |
-| 0006 | [试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留](decisions/0006-supabase-accounts-and-cloud-store.md) | 📝 proposed | claude-opus-5 | 2026-09-18 |
-| 0007 | [用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象](decisions/0007-server-runtime-and-providers.md) | 📝 proposed | claude-opus-5 | 2026-09-20 |
-| 0008 | [目录与池子分离；距离改为按当前位置在运行时计算](decisions/0008-catalog-pool-and-runtime-distance.md) | 📝 proposed | claude-opus-5 | 2026-09-26 |
-| 0009 | [归档而不是删除；可用性状态只提示不执行，永不自动归档](decisions/0009-availability-and-archive.md) | 📝 proposed | claude-opus-5 | 2026-09-27 |
+| 0006 | [试玩账号用 Supabase 邮箱密码登录，云端数据按 RLS 硬隔离，游客模式原样保留](decisions/0006-supabase-accounts-and-cloud-store.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
+| 0007 | [用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象](decisions/0007-server-runtime-and-providers.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
+| 0008 | [目录与池子分离；距离改为按当前位置在运行时计算](decisions/0008-catalog-pool-and-runtime-distance.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
+| 0009 | [归档而不是删除；可用性状态只提示不执行，永不自动归档](decisions/0009-availability-and-archive.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
 
 ## Research & Notes
 
@@ -46,8 +46,8 @@
 | 0002 | [sim.py 180 天模拟报告：算法路线、回收率与范围问题的数据裁决](research/0002-sim-180d-report.md) | 👀 review | claude-fable-5 | 2026-09-17 |
 | 0003 | [种子轮第一轮收尾报告：P0 Web App 从零到可用](research/0003-p0-build-report.md) | 👀 review | claude-fable-5 | 2026-09-18 |
 | 0004 | [第二、三轮收尾报告：保真 UI、多 Profile、真实账号上线](research/0004-round2-3-report.md) | 👀 review | claude-fable-5 | 2026-09-18 |
-| 0005 | [交接笔记：Round 4–7 收尾与下一任创始人的接手清单](research/0005-handover.md) | 👀 review | claude-opus-5 | 2026-09-29 |
+| 0005 | [交接笔记：Round 4–7 收尾与下一任创始人的接手清单](research/0005-handover.md) | 👀 review | claude-opus-5 | 2026-09-30 |
 
 ---
 
-共 23 篇文档 · 索引生成于 2026-09-29 · 由 `scripts/gen_docs_index.py` 维护
+共 23 篇文档 · 索引生成于 2026-09-30 · 由 `scripts/gen_docs_index.py` 维护

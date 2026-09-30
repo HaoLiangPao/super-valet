@@ -1,6 +1,6 @@
 ---
 name: ship-check
-description: Supper Valet 的验收与上线关卡 —— 验收子代理交付、跑全套检查、commit、部署到 Vercel 生产并冒烟。当要验收一个 Unit、合入子代理的产出、或把新版本部署上线时使用。
+description: Supper Valet 的验收与上线关卡 —— 验收子代理交付、跑全套检查、commit、部署到 Vercel 预览、经 Hao 批准后上生产并冒烟。当要验收一个 Unit、合入子代理的产出、或把新版本部署上线时使用。
 ---
 
 # 验收与上线关卡
@@ -14,7 +14,7 @@ description: Supper Valet 的验收与上线关卡 —— 验收子代理交付�
 
 ```bash
 cd app/web
-npm test          # 1. 全绿，且总数不少于上一轮（当前基线 55）
+npm test          # 1. 全绿，且总数不少于上一轮（基线看上一轮收尾报告）
 npm run build     # 2. 零错误；ESLint 在 build 内执行
 ```
 
@@ -40,7 +40,7 @@ git add -A && git commit -m "..."   # 一个 Unit 一个 commit，CI 绿了才�
 ```
 
 commit message 用英文，正文写清：**为什么做 / 谁实现 / 谁验收 / 验收证据**。
-`git push` 需要 Hao 当次确认，不要自行推送。
+commit 自主；`git push` 的权限见 `CLAUDE.md` §授权状态。
 
 ## 关卡三：QA 独立复检（涉及上线时必做）
 
@@ -53,15 +53,24 @@ commit message 用英文，正文写清：**为什么做 / 谁实现 / 谁验收
 - console 卫生
 - 用完 `browser_close` 释放浏览器，测完停掉 dev server
 
-## 关卡四：部署（需 Hao 当次确认）
+## 关卡四：部署（先预览，生产另批）
+
+谁能批什么见 `CLAUDE.md` §授权状态，这里只写怎么敲。
+
+```bash
+cd app/web && npx vercel deploy --yes          # 预览：把输出的 URL 交给 Hao
+```
+
+Hao 看过预览、批准上生产之后才跑：
 
 ```bash
 cd app/web && npx vercel deploy --prod --yes
 curl -s -o /dev/null -w "%{http_code}\n" https://supper-valet.vercel.app
 ```
 
-- 对外只发**主域** `supper-valet.vercel.app`；
-  `*-haoliangpaos-projects.vercel.app` 长链接受部署保护返回 302，属正常。
+- 预览链接（`*-haoliangpaos-projects.vercel.app`）受 Vercel Authentication 保护，
+  未登录访问返回 302，属正常 —— Hao 登录自己的 Vercel 账号即可打开。
+- 对外只发**主域** `supper-valet.vercel.app`。
 - 新增 `NEXT_PUBLIC_*` 环境变量要先配进 Vercel：
   `npx vercel env add NAME production`（值走 stdin，**不要回显**）。
 

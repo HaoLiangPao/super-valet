@@ -72,7 +72,7 @@ UI 实现派 Sonnet；架构与数据层派 Opus；自己只做判断、spec 和
 5. 验收    —— 按 §3 亲自验，不过不合入
 6. 提交    —— CI 绿 → commit（一个 Unit 一个 commit）
 7. QA 复检 —— 涉及上线的，派独立 QA 出 Go/No-Go
-8. 上线    —— 需 Hao 当次确认；上线后创始人亲自冒烟
+8. 上线    —— 先上预览；生产要 Hao 批准（CLAUDE.md §授权状态）；上线后创始人亲自冒烟
 9. 收尾    —— 按 §5 写 research 报告 + 状态卫生检查
 ```
 
@@ -143,11 +143,15 @@ UI 实现派 Sonnet；架构与数据层派 Opus；自己只做判断、spec 和
 ## §5 收尾检查清单（每轮必做）
 
 - [ ] 写 `docs/research/NNNN-*.md` 收尾报告：交付了什么（对应 commit）、
-      偏差与自主决定、验证证据、**跟进清单（按优先级）**、花费结构。
-- [ ] **状态卫生**：实现并上线的 design doc 不该还是 `draft`；
+      偏差与自主决定、验证证据、花费结构。
+      **跟进项不写在报告里** —— 一律进 `docs/OPEN-QUESTIONS.md`，报告只链接过去。
+      （2026-09-30 的教训：跟进项散在交接笔记、收尾报告、GO-LIVE、ADR 抬头五个地方，
+      有的过期了没人删，有的挂了十几天没人看见。）
+- [ ] **状态卫生**：实现并上线的 design doc 转 `implemented`，不该还是 `draft`/`accepted`；
       被取代的要 `superseded` + `superseded_by`；
-      `proposed` 的 ADR 列进跟进清单请 Hao 裁决（创始人不得自行转 accepted）。
-- [ ] `docs/OPEN-QUESTIONS.md`：已拍板的问题删掉并链到对应 ADR。
+      `proposed` 的 ADR 列进台账请 Hao 裁决（创始人不得自行转 accepted）。
+- [ ] `docs/OPEN-QUESTIONS.md`：已拍板、已办完的条目删掉并在文末链到结论所在；
+      新冒出来的跟进项加进去；**逐条核对还挂着的是否仍然成立**。
 - [ ] 索引与 frontmatter CI 跑一遍。
 - [ ] 给 Hao 的汇报：**先结论，后细节**，跟进项写清「需要你做什么」。
 

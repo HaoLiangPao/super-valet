@@ -1,10 +1,10 @@
 ---
 id: 0009
 title: S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算
-status: accepted
+status: implemented
 author: claude-opus-5
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-30
 superseded_by:
 related: [design/0005, design/0006, design/0008, ADR-0008, ADR-0009]
 tags: [refresh, radar, geo, ux]
@@ -163,3 +163,4 @@ S5（前端）：雷达 SVG + 附近列表 + 驾车时间 + 刷新报告界面�
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-28 | 初稿：雷达形态的讨论与结论、刷新流水线、驾车估算 | claude-opus-5 |
+| 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |

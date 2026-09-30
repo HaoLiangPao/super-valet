@@ -1,10 +1,10 @@
 ---
 id: 0005
 title: EXPLORE 页：按店名或粘贴笔记导入餐厅
-status: accepted
+status: implemented
 author: claude-opus-5
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-30
 superseded_by:
 related: [design/0001, design/0002, ADR-0006, ADR-0007, research/0001]
 tags: [explore, places, llm, data-pipeline]
@@ -181,3 +181,4 @@ Unit B（前端）：EXPLORE 页 UI（Organic 风格）+ 第四个 Tab + 预览�
 | ---- | -------- | -- |
 | 2026-09-20 | 初稿并开工（Round 4 Unit 0） | claude-opus-5 |
 | 2026-09-25 | LLM 改用 DeepSeek（经 OpenRouter）；新增 §4.7 抓取台账、§4.8 30 天 TTL；补记相关性校验与营业时间未知两个实测发现 | claude-opus-5 |
+| 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |

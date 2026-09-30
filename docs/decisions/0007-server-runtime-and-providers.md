@@ -1,10 +1,10 @@
 ---
 id: 0007
 title: 用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象
-status: proposed
+status: accepted
 author: claude-opus-5
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-30
 superseded_by:
 related: [ADR-0003, ADR-0006, design/0005]
 tags: [infra, api, secrets]
@@ -12,8 +12,7 @@ tags: [infra, api, secrets]
 
 # ADR-0007: 用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象
 
-> status: **proposed** —— 这是本项目第一次引入服务端运行时与按量计费的外部
-> API，会改变部署形态与成本结构，请 Hao 复核后转 accepted。
+> status: **accepted** —— Hao 2026-09-30 复核通过。
 
 ## 背景 / Context
 
@@ -78,3 +77,9 @@ fetch 打 OpenAI 兼容接口。实测一次笔记抽取约 190 输入 + 180 输
 **什么情况下应该重新考虑这个决定**
 - 服务端逻辑增长到需要独立后端（定时任务、队列、长任务）。
 - Places 成本超出免费额度一个数量级，需要换数据源或自建缓存层。
+
+## 变更记录 / Changelog
+
+| 日期 | 改了什么 | 谁 |
+| ---- | -------- | -- |
+| 2026-09-30 | Hao 裁决：转 `accepted`（已实现并上线） | claude-opus-5-5 |

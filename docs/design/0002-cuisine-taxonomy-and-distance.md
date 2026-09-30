@@ -1,10 +1,10 @@
 ---
 id: 0002
 title: GTA 菜系分类体系与距离模块规格 v1
-status: draft
+status: accepted
 author: HaoLiangPao
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-30
 superseded_by:
 related: [design/0001, ADR-0003]
 tags: [taxonomy, geo, bandit]
@@ -469,3 +469,21 @@ Google 简介：{editorialSummary}
  
 **原型阶段建议先落这些**：subCuisine code 表（手填 20 家常去的店即可，不用接 Places API）、`slotLock`/`soloFriendly` 硬过滤、距离指数衰减。Haiku 分类器和 PostGIS 都可以等到 MVP 再上 —— 原型的目的是校准参数，不是验证技术栈。
  
+
+## 裁决记录
+
+Hao 2026-09-30 裁决，关掉 OPEN-QUESTIONS 里挂在本文名下的三题：
+
+- **Q2 地理锚点 → 双轨制**（本文 §6.1）：锚点为主、GPS 可选。已由 ADR-0008 §3 落地。
+- **Q3 PostGIS → 不上。** 本文 §6.2 的 PostGIS 方案**不执行**：目录 74 家，
+  应用层按经纬度算距离已经在线上跑，PostGIS 只会多一份运维负债（research/0001 §4）。
+  目录涨到几千家、需要召回层时重新考虑（同 ADR-0008 的重审条件）。
+- **Q5 冷启动 → 先验继承（本文 §5.1）够用，不做配对比较问卷。**
+  research/0002 §六：乐观先验加类别层已经够；κ 的具体值等真有新店数据时再校准。
+
+## 变更记录
+
+| 日期 | 改了什么 | 谁 |
+| ---- | -------- | -- |
+| 2026-09-17 | 初稿 | HaoLiangPao |
+| 2026-09-30 | Hao 裁决：`draft` → `accepted`；补裁决记录（Q2、Q3、Q5），§6.2 PostGIS 不执行 | claude-opus-5-5 |

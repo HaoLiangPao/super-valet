@@ -1,10 +1,10 @@
 ---
 id: 0004
 title: 第二轮：设计保真 UI（Organic + 动效）+ 多 Profile 隔离 + Vercel 就绪
-status: accepted
+status: implemented
 author: claude-fable-5
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-30
 superseded_by:
 related: [design/0003, ADR-0005, research/0003]
 tags: [ui, profiles, deploy]
@@ -78,3 +78,4 @@ Unit A（Opus 技术负责人）Profile 层 + 迁移 + 测试 → Unit B（Sonne
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-09-18 | 初稿并开工 | claude-fable-5 |
+| 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |

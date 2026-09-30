@@ -1,6 +1,9 @@
 # 上线采购清单 / Go-live checklist
 
 > 给 Hao：按顺序办，办完哪项在方框里打勾。金额都按最省的算。
+>
+> 本文件是**采购与凭证的记录**。还没办的事不在这里跟踪 ——
+> 一律看 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)（唯一的待办台账）。
 
 ## 🟢 已上线（2026-09-18）
 
@@ -38,13 +41,14 @@ Hobby 档；`*-projects.vercel.app` 长链接受 Vercel Authentication 保护返
 - [x] **账号轮已实现**（2026-09-18，ADR-0006）：邮箱密码登录（项目已开
   `mailer_autoconfirm`，不依赖邮件送达）、`supabase/migrations/0001_init.sql`
   已在项目上执行、五张表 RLS 全开并实测、`NEXT_PUBLIC_*` 两个值已配进 Vercel
-  三个环境。待创始人验收 + QA 复检后 commit 与部署。
-  - 试玩名单固定后记得收口公开注册：Management API `PATCH /v1/projects/<ref>/config/auth`
-    传 `{"disable_signup": true}`。
+  三个环境。已 commit（`05e9f0f`）并部署生产。
+  - 公开注册**故意开着**，等 pilot 名单固定后收口 —— 跟踪在
+    [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) H1（命令也在那里）。
 
 ## 3. 可选
 
 - [ ] 域名（约 $12/年）。不买也行，`supper-valet.vercel.app` 这类免费子域够 POC。
+      （跟踪在 OPEN-QUESTIONS H5。）
 
 ## 4. EXPLORE 导入轮（2026-09-25）
 
@@ -52,16 +56,13 @@ Hobby 档；`*-projects.vercel.app` 长链接受 Vercel Authentication 保护返
       每月 5,000 次免费额度足够我们的量级）。
 - [x] **OpenRouter API key**：✅ Hao 已提供，用 `deepseek/deepseek-chat`，
       实测一次笔记抽取约 0.02 美分。
-- [ ] **⚠️ 待你做：在 Supabase SQL Editor 里跑一次建表 SQL**
-      —— 复制 `supabase/migrations/0002_explore_import.sql` 全文，
-      粘进 Dashboard → SQL Editor → Run。**登录态的导入功能在这之前用不了**
-      （游客模式不受影响）。
-      原因：`SUPABASE_ACCESS_TOKEN` 现在返回 401（可能已过期），
-      而直连 Postgres 的 `db.<ref>.supabase.co` 只有 IPv6，这台机器没有 IPv6 路由。
-      要让我以后能自己跑迁移，二选一：① 给一个新的 access token；
-      ② 在 Dashboard → Settings → Database 里找到 **Connection pooler** 的
-      连接串（形如 `postgres.<ref>@aws-N-<region>.pooler.supabase.com:5432`）
-      填进 `.env.local` 的 `SUPABASE_DB_URL`。之后 `node scripts/migrate.mjs <file>.sql` 即可。
+- [x] **迁移 0002–0005 已在线上执行。** ✅ 2026-09-30 用
+      `node scripts/prod-status.mjs` 核过：线上 public 下 19 张表/视图齐全
+      （含 0002 的 `dishes`/`sources`/`fetch_log`、0003 的 `user_pool_selection`/
+      `user_location_prefs`、0004 的 `user_archived_restaurants`、0005 的 `refresh_reports`），
+      access token 有效。这里原先写的「待你手动跑 0002、token 返回 401」是
+      2026-09-25 的状态，之后两条迁移路径都恢复可用（research/0005 §5），只是没回来打勾。
+      以后跑迁移：`node scripts/migrate.mjs <file>.sql`；哪些要先问 Hao 见 `CLAUDE.md` §授权状态。
 
 ## 5. 明确不用买
 

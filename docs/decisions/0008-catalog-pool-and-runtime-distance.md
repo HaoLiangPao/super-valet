@@ -1,10 +1,10 @@
 ---
 id: 0008
 title: 目录与池子分离；距离改为按当前位置在运行时计算
-status: proposed
+status: accepted
 author: claude-opus-5
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-09-30
 superseded_by:
 related: [ADR-0005, ADR-0006, ADR-0007, design/0002, design/0006]
 tags: [data-model, geo, pool]
@@ -12,7 +12,7 @@ tags: [data-model, geo, pool]
 
 # ADR-0008: 目录与池子分离；距离改为运行时计算
 
-> status: **proposed** —— 改的是核心数据模型，请 Hao 复核后转 accepted。
+> status: **accepted** —— Hao 2026-09-30 复核通过。
 
 ## 背景 / Context
 
@@ -88,3 +88,9 @@ GPS 只在用户主动开启时请求，缓存 15 分钟，失败沿着
 **什么情况下应该重新考虑这个决定**
 - 目录涨到几千家：那时需要召回层，不能再全量打分（design/0001 假设 A2 会失效）。
 - 用户开始期望「附近实时发现」而不是「维护自己的池子」——那是另一个产品。
+
+## 变更记录 / Changelog
+
+| 日期 | 改了什么 | 谁 |
+| ---- | -------- | -- |
+| 2026-09-30 | Hao 裁决：转 `accepted`（已实现并上线） | claude-opus-5-5 |
