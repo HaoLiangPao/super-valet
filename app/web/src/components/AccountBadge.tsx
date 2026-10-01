@@ -7,6 +7,8 @@ import type { TFunc } from '@/lib/i18n';
 import { PERSONA_TEMPLATES } from '@/lib/profiles/personas';
 import type { CloudIdentity } from '@/lib/cloud/store';
 
+import MeSheet, { MeSheetRow } from './MeSheet';
+
 function personaName(t: TFunc, key: string | null): string {
   if (!key) return t('account.persona.scratch');
   const tpl = PERSONA_TEMPLATES.find((p) => p.key === key);
@@ -14,8 +16,8 @@ function personaName(t: TFunc, key: string | null): string {
 }
 
 /**
- * 云模式右上角的账号徽章：点开是账号面板（邮箱 / 口味起点 / 登出）。
- * 位置与游客模式的 ProfileBadge 一致，两者互斥出现。
+ * 云模式右上角的账号徽章：点开是「我的」面板（语言 / 邮箱 / 口味起点 /
+ * 位置与半径 / 登出，见 `MeSheet`）。位置与游客模式的 ProfileBadge 一致，两者互斥出现。
  */
 export default function AccountBadge({
   identity,
@@ -54,26 +56,9 @@ export default function AccountBadge({
       </button>
 
       {open && (
-        <>
-          <div className="sheet-backdrop" onClick={() => setOpen(false)} />
-          <div className="sheet-panel fx-sheet">
-            <div className="sheet-grabber" />
-            <div className="font-heading text-[22px] leading-[1.2]">{t('account.sheet.title')}</div>
-            <p className="mt-1.5 mb-4 text-[12.5px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
-              {t('account.sheet.desc')}
-            </p>
-
-            <div className="mb-4 flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[12px]" style={{ color: 'var(--color-neutral-600)' }}>{t('account.sheet.emailLabel')}</span>
-                <span className="truncate text-[13.5px] font-semibold">{identity.email ?? '—'}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[12px]" style={{ color: 'var(--color-neutral-600)' }}>{t('account.sheet.personaLabel')}</span>
-                <span className="tag tag-accent">{identity.emoji} {personaName(t, identity.personaKey)}</span>
-              </div>
-            </div>
-
+        <MeSheet
+          onClose={() => setOpen(false)}
+          footer={(
             <button
               type="button"
               onClick={handleSignOut}
@@ -83,8 +68,18 @@ export default function AccountBadge({
             >
               {busy ? t('account.sheet.signingOut') : t('account.sheet.signOut')}
             </button>
-          </div>
-        </>
+          )}
+        >
+          <MeSheetRow label={t('account.sheet.emailLabel')}>
+            <span className="truncate text-[13.5px] font-semibold">{identity.email ?? '—'}</span>
+          </MeSheetRow>
+          <MeSheetRow label={t('account.sheet.personaLabel')}>
+            <span className="tag tag-accent">{identity.emoji} {personaName(t, identity.personaKey)}</span>
+          </MeSheetRow>
+          <p className="text-[12px] leading-relaxed" style={{ color: 'var(--color-neutral-600)' }}>
+            {t('account.sheet.desc')}
+          </p>
+        </MeSheet>
       )}
     </>
   );

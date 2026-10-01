@@ -158,7 +158,11 @@ export const en: Record<MessageKey, string> = {
   'settings.radius.mid': 'Worth a trip',
   'settings.radius.all': 'No limit',
   'settings.radius.poolCount': '{count} in your pool right now.',
-  'settings.language.title': 'Language',
+  'me.sheet.title': 'Me',
+  'me.language.title': 'Language · 语言',
+  'me.locationEntry': 'Location & radius',
+  'me.profileLabel': 'Current profile',
+  'me.switchProfile': 'Switch profile',
   'settings.language.zh': '简体中文',
   'settings.language.en': 'English',
 
@@ -230,9 +234,9 @@ export const en: Record<MessageKey, string> = {
   'apiError.validation.invalid': "That request wasn't formatted right",
 
   // ── Account (cloud sign-in) ────────────────────────────────────
-  'account.badge.title': '{email} · Account',
+  'account.badge.title': '{email} · Me',
   'account.badge.noEmail': 'Signed in',
-  'account.badge.srLabel': 'Account ({email})',
+  'account.badge.srLabel': 'Me ({email})',
   'account.sheet.title': 'Account',
   'account.sheet.desc': 'Your data lives in the cloud, only this account can see it.',
   'account.sheet.emailLabel': 'Email',
@@ -258,8 +262,8 @@ export const en: Record<MessageKey, string> = {
   'profile.isolationNote': "Each profile's taste, history and feedback are fully isolated from the others.",
   'profile.loginEntry': 'Have an account? Sign in with email →',
   'profile.loginNote': "Signing in stores your data in the cloud and follows you across devices; these local profiles stay right here as they are.",
-  'profile.badge.title': '{name} · Switch profile',
-  'profile.badge.srLabel': 'Switch profile (currently {name})',
+  'profile.badge.title': '{name} · Me',
+  'profile.badge.srLabel': 'Me (currently {name})',
 
   // ── Email sign-in ────────────────────────────────────────────────
   'auth.title': 'Sign in with your account',

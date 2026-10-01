@@ -39,7 +39,9 @@ describe('字典完整性', () => {
     // 唯一允许的例外：语言切换里「简体中文」这个选项本身要用自己的文字显示，
     // 不管当前 UI 语言是什么（跟 settings.language.en 在中文字典里也是
     // "English" 而不是"英文"同理）。
-    const ALLOWED_CJK_KEYS = new Set(['settings.language.zh']);
+    // 「我的」面板里语言那一行的标题刻意双语（Q17）：语言切换就是给看不懂
+    // 当前语言的人用的，标题必须两种文字都有。
+    const ALLOWED_CJK_KEYS = new Set(['settings.language.zh', 'me.language.title']);
     const cjk = /[一-鿿]/;
     const offenders = Object.entries(en)
       .filter(([key, value]) => !ALLOWED_CJK_KEYS.has(key) && cjk.test(value));

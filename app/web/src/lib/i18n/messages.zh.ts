@@ -164,7 +164,11 @@ export const zh = {
   'settings.radius.mid': '专程',
   'settings.radius.all': '不限',
   'settings.radius.poolCount': '当前池子 {count} 家可选。',
-  'settings.language.title': '语言',
+  'me.sheet.title': '我的',
+  'me.language.title': '语言 · Language',
+  'me.locationEntry': '位置与半径',
+  'me.profileLabel': '当前身份',
+  'me.switchProfile': '切换身份',
   'settings.language.zh': '简体中文',
   'settings.language.en': 'English',
 
@@ -237,9 +241,9 @@ export const zh = {
   'apiError.validation.invalid': '请求格式不对',
 
   // ── 账号（云端登录）───────────────────────────────────────────────
-  'account.badge.title': '{email} · 账号',
+  'account.badge.title': '{email} · 我的',
   'account.badge.noEmail': '已登录',
-  'account.badge.srLabel': '账号（{email}）',
+  'account.badge.srLabel': '我的（{email}）',
   'account.sheet.title': '账号',
   'account.sheet.desc': '数据存在云端，只有这个账号看得到。',
   'account.sheet.emailLabel': '邮箱',
@@ -265,8 +269,8 @@ export const zh = {
   'profile.isolationNote': '每个 Profile 的口味、记录、反馈完全隔离，互不影响。',
   'profile.loginEntry': '有账号？用邮箱登录 →',
   'profile.loginNote': '登录后数据存云端、换设备也跟着走；本机这些 Profile 会原样留着。',
-  'profile.badge.title': '{name} · 切换 Profile',
-  'profile.badge.srLabel': '切换 Profile（当前 {name}）',
+  'profile.badge.title': '{name} · 我的',
+  'profile.badge.srLabel': '我的（当前 {name}）',
 
   // ── 邮箱登录 ──────────────────────────────────────────────────────
   'auth.title': '用账号登录',

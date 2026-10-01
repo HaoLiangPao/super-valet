@@ -9,8 +9,8 @@ import { ANCHOR_LIST, loadLocationPrefs, requestGps, saveLocationPrefs } from '@
 import { localizedPool } from '@/lib/catalog/localize';
 import { RADIUS_KM } from '@/lib/catalog/types';
 import type { LocationPrefs, RadiusOption } from '@/lib/catalog/types';
-import { useLocale, useT } from '@/lib/i18n';
-import type { Locale, MessageKey } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
+import type { MessageKey } from '@/lib/i18n';
 
 const GPS_FAILURE_KEY: Record<GpsFailure, MessageKey> = {
   unsupported: 'settings.gps.fail.unsupported',
@@ -41,7 +41,6 @@ function currentAnchorId(prefs: LocationPrefs): string | null {
 
 export default function SettingsPage() {
   const t = useT();
-  const { locale, setLocale } = useLocale();
   const [prefs, setPrefs] = useState<LocationPrefs | null>(null);
   const [poolCount, setPoolCount] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -183,28 +182,6 @@ export default function SettingsPage() {
         </Link>
       </section>
 
-      <section className="flex flex-col gap-2.5">
-        <h2 className="font-heading text-[16px]">{t('settings.language.title')}</h2>
-        <div className="flex gap-1.5 rounded-[999px] p-1" style={{ background: 'var(--color-neutral-200)' }}>
-          {(['zh', 'en'] as Locale[]).map((l) => {
-            const active = locale === l;
-            return (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLocale(l)}
-                className="flex-1 rounded-full py-2 text-center text-[12px] font-bold"
-                style={{
-                  background: active ? 'var(--color-accent)' : 'transparent',
-                  color: active ? 'var(--color-bg)' : 'var(--color-neutral-700)',
-                }}
-              >
-                {l === 'zh' ? t('settings.language.zh') : t('settings.language.en')}
-              </button>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
