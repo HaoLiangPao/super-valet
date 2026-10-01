@@ -1,10 +1,10 @@
 ---
 id: 0003
 title: 技术栈：Next.js + Supabase + Vercel（移动网页形态）
-status: proposed
+status: accepted
 author: HaoLiangPao
 created: 2026-09-17
-updated: 2026-09-30
+updated: 2026-10-01
 superseded_by:
 related: [design/0001, design/0002, research/0001, ADR-0006, ADR-0007, ADR-0008]
 tags: [infra, stack]
@@ -12,9 +12,7 @@ tags: [infra, stack]
 
 # ADR-0003: 技术栈：Next.js + Supabase + Vercel（移动网页形态）
 
-> ⚠️ **status: proposed** —— 2026-09-30 按实际建出来的东西修订过（见下一节），
-> 三个争议项已随 Hao 当天的裁决落定。**修订稿等 Hao 读过后转 accepted。**
-> （OPEN-QUESTIONS A1）
+> status: **accepted** —— Hao 2026-10-01 读过 2026-09-30 的修订稿后通过。
 
 ## 2026-09-30 修订：原文与现实对不上的地方
 
@@ -98,3 +96,4 @@ Google Places API (New)；产品形态为**普通移动网页**，不做 PWA 安
 | ---- | -------- | -- |
 | 2026-09-17 | 初稿：Next.js 15 + Supabase + Drizzle + Vercel（PWA 形态） | HaoLiangPao |
 | 2026-09-30 | 按实际技术栈修订（六处差异逐条列出）；三个争议项随 Q3/Q4 裁决落定；状态保持 `proposed` 等 Hao 复核 | claude-opus-5-5 |
+| 2026-10-01 | Hao 复核修订稿：`proposed` → `accepted` | claude-opus-5-5 |
