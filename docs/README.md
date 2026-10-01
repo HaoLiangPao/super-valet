@@ -35,6 +35,7 @@
 | 0007 | [用 Next.js Route Handler 做服务端，外部数据源走 provider 抽象](decisions/0007-server-runtime-and-providers.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
 | 0008 | [目录与池子分离；距离改为按当前位置在运行时计算](decisions/0008-catalog-pool-and-runtime-distance.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
 | 0009 | [归档而不是删除；可用性状态只提示不执行，永不自动归档](decisions/0009-availability-and-archive.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
+| 0010 | [餐厅事实归服务端，按店全局刷新一次；用户只负责发现与报告关门](decisions/0010-server-owned-place-facts.md) | 📝 proposed | claude-opus-5-5 | 2026-10-01 |
 
 ## Research & Notes
 
@@ -50,4 +51,4 @@
 
 ---
 
-共 23 篇文档 · 索引生成于 2026-10-01 · 由 `scripts/gen_docs_index.py` 维护
+共 24 篇文档 · 索引生成于 2026-10-01 · 由 `scripts/gen_docs_index.py` 维护
