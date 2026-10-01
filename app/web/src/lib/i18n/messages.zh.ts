@@ -355,6 +355,7 @@ export const zh = {
   'nearby.report.meta': '{trigger} · {time} · 用时 {seconds} 秒',
   'nearby.report.updatedCount': '更新了 {count} 家',
   'nearby.report.discoveredCount': '新发现 {count} 家',
+  'nearby.report.discoveredWithin': '{km} km 内新发现 {count} 家',
   'nearby.report.attentionCount': '需要你确认 {count} 家',
   'nearby.report.unchangedCount': '没有变化 {count} 家',
   'nearby.report.failedCount': '失败 {count} 家',

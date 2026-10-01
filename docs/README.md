@@ -18,7 +18,7 @@
 | 0006 | [餐厅目录、预设套餐、GPS 半径与池子管理](design/0006-catalog-packages-and-location.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
 | 0007 | [界面语言支持：默认简体中文，支持英文](design/0007-i18n.md) | 🚢 implemented | claude-opus-5 | 2026-10-01 |
 | 0008 | [路线图：池子引导、月度刷新与雷达重扫、歇业归档、行为统计](design/0008-refresh-archive-and-stats.md) | ✅ accepted | claude-opus-5 | 2026-09-30 |
-| 0009 | [S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算](design/0009-refresh-radar-and-travel-time.md) | 🚢 implemented | claude-opus-5 | 2026-09-30 |
+| 0009 | [S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算](design/0009-refresh-radar-and-travel-time.md) | 🚢 implemented | claude-opus-5 | 2026-10-01 |
 
 ## Architecture Decisions (ADR)
 

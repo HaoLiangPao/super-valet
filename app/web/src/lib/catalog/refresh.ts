@@ -8,7 +8,7 @@ import type {
   Classification,
   ImportPreview,
   PlaceCandidate,
-  PlaceDetails,
+  PlaceFacts,
 } from '@/lib/places/contract';
 import { distanceFrom, summarize } from '@/lib/places/preview';
 import { currentBackend } from '@/lib/store/backend';
@@ -21,6 +21,7 @@ import { catalogIndex } from './catalog';
 import { loadLocationPrefs, radiusKm, resolveLocation } from './location';
 import { canAutoRefresh, sanitizeRefreshReports } from './refresh-report';
 import {
+  DISCOVERY_MAX_KM,
   MANUAL_DISCOVERY_QUERY_LIMIT,
   REFRESH_BATCH_LIMIT,
 } from './refresh-types';
@@ -65,7 +66,8 @@ export interface LatLng {
 /** 一家店重拉事实的结果：成功给 details，失败给一句给用户看的短句 */
 export interface DetailsOutcome {
   placeId: string;
-  details?: PlaceDetails;
+  /** 刷新只拿事实（Q16①）：`dineIn` 可能缺失，缺失 = 沿用原值 */
+  details?: PlaceFacts;
   /** 已本地化的失败短句（HTTP 端口负责翻译，流水线不拼文案） */
   error?: string;
 }
@@ -139,7 +141,7 @@ function classificationOf(r: CatalogRestaurant): Classification {
  * 一个字段都没变的店不进报告（否则 74 家全在列表里，报告就成了噪音），
  * 由调用方计进 `unchanged`。
  */
-export function diffFacts(before: CatalogRestaurant, after: PlaceDetails): FieldChange[] {
+export function diffFacts(before: CatalogRestaurant, after: PlaceFacts): FieldChange[] {
   const changes: FieldChange[] = [];
   const push = (
     field: FieldChange['field'],
@@ -156,7 +158,8 @@ export function diffFacts(before: CatalogRestaurant, after: PlaceDetails): Field
   push('rating', round1(before.rating), round1(after.rating));
   push('ratingCount', before.ratingCount, after.ratingCount);
   push('priceLevel', before.priceLevel, after.priceLevel);
-  push('dineIn', before.dineIn, after.dineIn);
+  // 刷新的 mask 不要 dineIn（Q16①）：没抓就不算变化
+  if (after.dineIn !== undefined) push('dineIn', before.dineIn, after.dineIn);
   push('closedDays', closedDaysKey(before.closedDays), closedDaysKey(after.closedDays), true);
   push('serviceWindows', windowsKey(before.serviceWindows), windowsKey(after.serviceWindows), true);
   push('businessStatus', businessStatusOf(before), toBusinessStatus(after.businessStatus));
@@ -172,7 +175,7 @@ export function diffFacts(before: CatalogRestaurant, after: PlaceDetails): Field
  * `distanceKm` / `bucket` 跟着新坐标重算（仍是相对导入锚点的兜底值；真正展示
  * 用的距离由 `localize.ts` 按当前位置实时算）。
  */
-export function mergeFacts(before: CatalogRestaurant, after: PlaceDetails): CatalogRestaurant {
+export function mergeFacts(before: CatalogRestaurant, after: PlaceFacts): CatalogRestaurant {
   const geo = distanceFrom(after.lat, after.lng);
   const merged: CatalogRestaurant = {
     ...before,
@@ -185,7 +188,8 @@ export function mergeFacts(before: CatalogRestaurant, after: PlaceDetails): Cata
     address: after.address,
     lat: after.lat,
     lng: after.lng,
-    dineIn: after.dineIn,
+    // 没抓到 dineIn（刷新的窄 mask）就沿用导入时的值，绝不按「有堂食」补
+    dineIn: after.dineIn ?? before.dineIn,
     priceLevel: after.priceLevel,
     rating: after.rating,
     ratingCount: after.ratingCount,
@@ -364,7 +368,7 @@ export async function refreshExisting(
     const status = toBusinessStatus(details.businessStatus);
     const fetchedAt = now.toISOString();
     const summary = summarize(
-      details, classificationOf(before), pool.get(outcome.placeId)?.dishes.length ?? 0, demo,
+      { ...details, dineIn: after.dineIn }, classificationOf(before), pool.get(outcome.placeId)?.dishes.length ?? 0, demo,
     );
 
     persistRefreshed(after, fetchedAt, summary, pool.get(outcome.placeId));
@@ -456,7 +460,10 @@ function dayIndex(now: Date): number {
 export interface DiscoverNearbyOptions {
   port: RefreshPort;
   prefs?: LocationPrefs;
-  /** 覆盖半径（km），design/0009 §4.5 的自定义输入；不传按 prefs.radius */
+  /**
+   * 覆盖半径（km），design/0009 §4.5 的自定义输入；不传按 prefs.radius。
+   * 无论传什么，实际都封顶在 `DISCOVERY_MAX_KM`（Q11）。
+   */
   withinKm?: number;
   /** 类目查询上限；**永远不会超过** `MANUAL_DISCOVERY_QUERY_LIMIT` */
   queryLimit?: number;
@@ -471,6 +478,8 @@ export interface DiscoverNearbyResult {
   fetchCount: number;
   /** 这次用了哪些类目查询（报告与排查用） */
   queries: CategoryQuery[];
+  /** 实际生效的发现半径（km，已封顶），报告据此说「N km 内」 */
+  withinKm: number;
 }
 
 /**
@@ -486,12 +495,12 @@ export async function discoverNearby(
   const now = opts.now ?? new Date();
   const prefs = opts.prefs ?? loadLocationPrefs();
   const at = resolveLocation(prefs, now.getTime());
-  const within = opts.withinKm ?? radiusKm(prefs.radius);
+  const within = Math.min(opts.withinKm ?? radiusKm(prefs.radius), DISCOVERY_MAX_KM);
   const queries = discoveryQueries({
     ...(opts.queryLimit === undefined ? {} : { limit: opts.queryLimit }),
     rotation: dayIndex(now),
   });
-  const result: DiscoverNearbyResult = { discovered: [], failed: [], fetchCount: 0, queries };
+  const result: DiscoverNearbyResult = { discovered: [], failed: [], fetchCount: 0, queries, withinKm: within };
   if (queries.length === 0) return result;
 
   let outcomes: DiscoverOutcome[];
@@ -518,7 +527,9 @@ export async function discoverNearby(
     ...archivedPlaceIds(),
   ]);
 
-  const byPlace = new Map<string, { candidate: PlaceCandidate; code: string; term: string }>();
+  const byPlace = new Map<string, {
+    candidate: PlaceCandidate; code: string; term: string; km: number | null;
+  }>();
   for (const outcome of outcomes) {
     const q = queries.find((x) => x.term === outcome.query);
     const code = q?.code ?? '';
@@ -542,12 +553,21 @@ export async function discoverNearby(
       // Places 说永久停业的新店没有推荐的道理（ADR-0009 只禁止**自动归档**，
       // 不禁止「不主动把一家关门的店塞给用户」）
       if (toBusinessStatus(candidate.businessStatus) === 'CLOSED_PERMANENTLY') continue;
-      byPlace.set(candidate.placeId, { candidate, code, term: outcome.query });
+      // Q11：Search 已经带回坐标，半径外的店在这里就丢掉 —— 连 Details 和 LLM 都不花。
+      // 没坐标的（fixture 之外很少见）留到 Details 之后再滤，见下面的兜底。
+      const km = typeof candidate.lat === 'number' && typeof candidate.lng === 'number'
+        ? haversineKm(at.lat, at.lng, candidate.lat, candidate.lng)
+        : null;
+      if (km !== null && !(km < within)) continue;
+      byPlace.set(candidate.placeId, { candidate, code, term: outcome.query, km });
     }
   }
 
+  // 近的先花：「候选 → 分类」最多 8 次，名额给离用户最近的店；
+  // 没坐标的排在最后（sort 是稳定的，同距离保持查询顺序）
+  const ordered = [...byPlace.values()].sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity));
   const limit = Math.min(opts.candidateLimit ?? DISCOVERY_PREVIEW_LIMIT, DISCOVERY_PREVIEW_LIMIT);
-  for (const { candidate, code } of [...byPlace.values()].slice(0, limit)) {
+  for (const { candidate, code } of ordered.slice(0, limit)) {
     result.fetchCount += 1;
     let preview: ImportPreview;
     try {
@@ -564,8 +584,8 @@ export async function discoverNearby(
     }
 
     const r = preview.restaurant as CatalogRestaurant;
-    // 半径过滤只能放在 Details **之后**：Text Search 的候选不带坐标，
-    // 拿不到距离。这是接受的浪费（最多 8 次），换的是不必新开一个计费 SKU。
+    // 兜底：候选没带坐标时，只能在 Details 之后按距离过滤。正常路径在上面已经滤过，
+    // 这里对有坐标的候选是 no-op（Details 的坐标与 Search 一致）。
     const km = haversineKm(at.lat, at.lng, r.lat, r.lng);
     logFetch({
       at: now.toISOString(), kind: 'refresh', placeId: r.placeId, placeName: r.name,
@@ -635,7 +655,7 @@ export async function runRefresh(
   const wantDiscover = trigger === 'manual' && opts.discover !== false;
   const found = wantDiscover
     ? await discoverNearby(opts)
-    : { discovered: [], failed: [], fetchCount: 0, queries: [] };
+    : { discovered: [], failed: [], fetchCount: 0, queries: [], withinKm: 0 };
 
   const report: RefreshReport = {
     id: newId(),
@@ -648,6 +668,7 @@ export async function runRefresh(
     failed: [...existing.failed, ...found.failed],
     fetchCount: existing.fetchCount + found.fetchCount,
     unchanged: existing.unchanged,
+    ...(wantDiscover ? { discoverWithinKm: found.withinKm } : {}),
   };
   saveRefreshReport(report);
   return report;

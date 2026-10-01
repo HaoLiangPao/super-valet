@@ -25,6 +25,12 @@ export interface PlaceCandidate {
   ratingCount?: number;
   /** 缺失 = Places 没给，按 `OPERATIONAL` 处理（ADR-0009）；S4 的「新发现」据此过滤 */
   businessStatus?: BusinessStatus;
+  /**
+   * 坐标（Q11，2026-10-01）：「发现新店」靠它在 Details **之前**按距离过滤，
+   * 远处的店连 Details 和 LLM 都不花。缺失（fixture、上游没给）时退回 Details 之后再滤。
+   */
+  lat?: number;
+  lng?: number;
 }
 
 /**
@@ -74,9 +80,24 @@ export interface PlaceDetails {
   editorialSummary?: string;
 }
 
+/**
+ * 刷新用的事实子集（Q16①，2026-10-01）。
+ *
+ * 刷新**刻意不重算分类**，所以分类器的输入（`reviewSnippets` / `editorialSummary`）
+ * 拿回来就扔；`dineIn` 极少变化，沿用导入时的值。这三个字段都在
+ * Enterprise + Atmosphere 档，去掉后刷新落在 Enterprise 档。
+ * `dineIn` 缺失 = 这次没抓，**保留原值**（不是「按有堂食处理」）。
+ */
+export type PlaceFacts = Omit<PlaceDetails, 'dineIn' | 'reviewSnippets' | 'editorialSummary'> & {
+  dineIn?: boolean;
+};
+
 export interface PlaceProvider {
   search(query: string, bias?: { lat: number; lng: number }): Promise<PlaceCandidate[]>;
+  /** 导入用：全字段，含分类器输入（Enterprise + Atmosphere 档） */
   details(placeId: string): Promise<PlaceDetails>;
+  /** 刷新用：只要事实（Enterprise 档），见 `PlaceFacts` */
+  facts(placeId: string): Promise<PlaceFacts>;
 }
 
 // ── 3. LLM：笔记抽取与菜系分类 ────────────────────────────────────────
@@ -171,7 +192,7 @@ export interface RefreshItemError { message: string; code?: string }
 export interface RefreshDetailsRequest { placeIds: string[] }
 export interface RefreshDetailsItem {
   placeId: string;
-  details?: PlaceDetails;
+  details?: PlaceFacts;
   error?: RefreshItemError;
 }
 export interface RefreshDetailsResponse { results: RefreshDetailsItem[]; demo: boolean }

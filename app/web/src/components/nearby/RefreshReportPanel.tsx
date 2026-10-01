@@ -171,7 +171,14 @@ export default function RefreshReportPanel({
         )}
       </Section>
 
-      <Section title={t('nearby.report.discoveredCount', { count: report.discovered.length })}>
+      <Section
+        title={report.discoverWithinKm === undefined
+          ? t('nearby.report.discoveredCount', { count: report.discovered.length })
+          : t('nearby.report.discoveredWithin', {
+            count: report.discovered.length,
+            km: Math.round(report.discoverWithinKm * 10) / 10,
+          })}
+      >
         {report.discovered.length > 0 && (
           <div className="flex flex-col gap-2">
             {report.discovered.map(({ restaurant, viaCategory, distanceKm }) => {

@@ -2,6 +2,7 @@ import type {
   Classification,
   PlaceCandidate,
   PlaceDetails,
+  PlaceFacts,
   PlaceProvider,
 } from './contract';
 import { NotFoundError } from './errors';
@@ -201,6 +202,8 @@ export function fixtureCandidate(place: FixturePlace): PlaceCandidate {
     primaryType: place.primaryType,
     rating: place.rating,
     ratingCount: place.ratingCount,
+    lat: place.lat,
+    lng: place.lng,
   };
 }
 
@@ -240,5 +243,11 @@ export class FixturePlaceProvider implements PlaceProvider {
     const place = findFixturePlace(placeId);
     if (!place) throw new NotFoundError('没找到这家店，换个关键词试试');
     return fixtureDetails(place);
+  }
+
+  async facts(placeId: string): Promise<PlaceFacts> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { dineIn, reviewSnippets, editorialSummary, ...facts } = await this.details(placeId);
+    return facts;
   }
 }

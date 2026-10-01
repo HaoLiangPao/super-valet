@@ -346,6 +346,7 @@ export const en: Record<MessageKey, string> = {
   'nearby.report.meta': '{trigger} · {time} · took {seconds}s',
   'nearby.report.updatedCount': 'Updated {count}',
   'nearby.report.discoveredCount': 'Discovered {count}',
+  'nearby.report.discoveredWithin': 'Discovered {count} within {km} km',
   'nearby.report.attentionCount': 'Needs your call: {count}',
   'nearby.report.unchangedCount': 'Unchanged {count}',
   'nearby.report.failedCount': 'Failed {count}',

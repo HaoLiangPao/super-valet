@@ -161,6 +161,10 @@ export function sanitizeRefreshReport(raw: unknown): RefreshReport | null {
     failed,
     fetchCount: count(r.fetchCount),
     unchanged: count(r.unchanged),
+    ...(trigger === 'manual' && typeof r.discoverWithinKm === 'number'
+      && Number.isFinite(r.discoverWithinKm) && r.discoverWithinKm > 0
+      ? { discoverWithinKm: r.discoverWithinKm }
+      : {}),
   };
 }
 

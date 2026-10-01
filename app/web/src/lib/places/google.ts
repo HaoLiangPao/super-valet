@@ -1,6 +1,7 @@
 import type {
   PlaceCandidate,
   PlaceDetails,
+  PlaceFacts,
   PlaceProvider,
 } from './contract';
 import { toBusinessStatus } from './contract';
@@ -23,8 +24,9 @@ import type { GoogleOpeningHours } from './hours';
  *   Ent.+Atmos. : dineIn / editorialSummary / reviews
  *
  * `dineIn` 是引擎硬过滤字段（纯外带店不能推），`editorialSummary` / `reviews`
- * 是分类器的主要输入（design/0002 §8.2），所以 Details 落在最贵的一档上。
+ * 是分类器的主要输入（design/0002 §8.2），所以**导入**的 Details 落在最贵的一档上。
  * 导入是低频操作（一个用户一辈子几十次），这个取舍写进 docs/GO-LIVE.md 了。
+ * **刷新**不重算分类，走 `facts()` 的窄 mask，只到 Enterprise 档（Q16①）。
  */
 
 const SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
@@ -40,9 +42,12 @@ const SEARCH_FIELD_MASK = [
   // ADR-0009：可用性状态。Pro 档字段，而这个 mask 因为 rating 已经落在
   // Enterprise 档，加它**不抬高计费档**，等于免费。
   'places.businessStatus',
+  // Q11：同理不抬档。「发现新店」靠它在 Details 之前按距离过滤
+  'places.location',
 ].join(',');
 
-const DETAILS_FIELD_MASK = [
+/** 刷新用（Q16①）：只要事实，落在 Enterprise 档 */
+const FACTS_FIELD_MASK = [
   'id',
   'displayName',
   'formattedAddress',
@@ -51,10 +56,15 @@ const DETAILS_FIELD_MASK = [
   'rating',
   'userRatingCount',
   'regularOpeningHours',
-  'dineIn',
-  // ADR-0009：同上，Details 已经落在 Enterprise + Atmosphere 档，加它不额外花钱
+  // ADR-0009：Pro 档字段，这个 mask 已在 Enterprise 档，加它不额外花钱
   'businessStatus',
   'primaryType',
+];
+
+/** 导入用：在事实之上加分类器输入与 dineIn，落在 Enterprise + Atmosphere 档 */
+const DETAILS_FIELD_MASK = [
+  ...FACTS_FIELD_MASK,
+  'dineIn',
   'editorialSummary',
   'reviews',
 ].join(',');
@@ -112,10 +122,14 @@ export function toCandidate(place: GooglePlaceJson): PlaceCandidate | null {
     ...(place.businessStatus && toBusinessStatus(place.businessStatus) !== 'OPERATIONAL'
       ? { businessStatus: toBusinessStatus(place.businessStatus) }
       : {}),
+    ...(typeof place.location?.latitude === 'number' && typeof place.location?.longitude === 'number'
+      ? { lat: place.location.latitude, lng: place.location.longitude }
+      : {}),
   };
 }
 
-export function toDetails(place: GooglePlaceJson): PlaceDetails {
+/** 事实字段 → `PlaceFacts`。`dineIn` 只在上游真的给了时才带（刷新的 mask 不要它） */
+export function toFacts(place: GooglePlaceJson): PlaceFacts {
   if (!place.id) throw new ProviderError('这家店的数据不完整，换一家试试');
   const lat = place.location?.latitude;
   const lng = place.location?.longitude;
@@ -126,11 +140,6 @@ export function toDetails(place: GooglePlaceJson): PlaceDetails {
   }
 
   const { serviceWindows, closedDays } = convertOpeningHours(place.regularOpeningHours);
-  const reviewSnippets = (place.reviews ?? [])
-    .map((r) => r.originalText?.text ?? r.text?.text ?? '')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0)
-    .slice(0, MAX_REVIEW_SNIPPETS);
 
   return {
     placeId: place.id,
@@ -143,13 +152,27 @@ export function toDetails(place: GooglePlaceJson): PlaceDetails {
     ratingCount: typeof place.userRatingCount === 'number' ? place.userRatingCount : 0,
     serviceWindows,
     closedDays,
-    // 字段缺失按「有堂食」处理（design/0005 §4.3）；Places 只在明确知道时才给 false
-    dineIn: place.dineIn !== false,
+    ...(typeof place.dineIn === 'boolean' ? { dineIn: place.dineIn } : {}),
     // 同 toCandidate：只在非 OPERATIONAL 时带上（ADR-0009）
     ...(place.businessStatus && toBusinessStatus(place.businessStatus) !== 'OPERATIONAL'
       ? { businessStatus: toBusinessStatus(place.businessStatus) }
       : {}),
     ...(place.primaryType ? { primaryType: place.primaryType } : {}),
+  };
+}
+
+export function toDetails(place: GooglePlaceJson): PlaceDetails {
+  const facts = toFacts(place);
+  const reviewSnippets = (place.reviews ?? [])
+    .map((r) => r.originalText?.text ?? r.text?.text ?? '')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+    .slice(0, MAX_REVIEW_SNIPPETS);
+
+  return {
+    ...facts,
+    // 字段缺失按「有堂食」处理（design/0005 §4.3）；Places 只在明确知道时才给 false
+    dineIn: place.dineIn !== false,
     ...(reviewSnippets.length > 0 ? { reviewSnippets } : {}),
     ...(place.editorialSummary?.text ? { editorialSummary: place.editorialSummary.text } : {}),
   };
@@ -250,5 +273,15 @@ export class GooglePlaceProvider implements PlaceProvider {
       'Place Details',
     );
     return toDetails(json as GooglePlaceJson);
+  }
+
+  async facts(placeId: string): Promise<PlaceFacts> {
+    const json = await this.call(
+      `${DETAILS_URL}/${encodeURIComponent(placeId)}`,
+      { method: 'GET' },
+      FACTS_FIELD_MASK.join(','),
+      'Place Details (facts)',
+    );
+    return toFacts(json as GooglePlaceJson);
   }
 }

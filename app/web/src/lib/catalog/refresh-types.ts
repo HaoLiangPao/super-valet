@@ -113,6 +113,11 @@ export interface RefreshReport {
   fetchCount: number;
   /** 检查过但没有任何变化的家数；报告要能说「12 家更新，38 家没变」 */
   unchanged: number;
+  /**
+   * 这次「发现新店」实际用的半径（km，Q11）。报告据此说「15 km 内新发现 N 家」；
+   * 没做发现（自动刷新、旧报告）时缺失。
+   */
+  discoverWithinKm?: number;
 }
 
 /* ── 节制政策（design/0008 §3 S4「自动刷新的节制」）──────────────────── */
@@ -129,3 +134,12 @@ export const AUTO_REFRESH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
  * 自动刷新不做发现，所以这个上限只作用于手动重扫。
  */
 export const MANUAL_DISCOVERY_QUERY_LIMIT = 8;
+
+/**
+ * 「发现新店」的半径上限（Q11，2026-10-01 Hao 批准）：`min(池子半径, 15 km)`。
+ *
+ * 池子的「不限」= 「显示我选过的全部」，合理；发现的「不限」= 「去全城找」，
+ * 把配额烧在引擎几乎不会推荐的店上：工作日晚餐 d0=6，20 km 的距离权重
+ * exp(-20/6)≈0.036，2 km 是 0.72，差 20 倍。所以两个「不限」必须分开。
+ */
+export const DISCOVERY_MAX_KM = 15;

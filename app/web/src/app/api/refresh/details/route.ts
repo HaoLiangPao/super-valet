@@ -21,6 +21,9 @@ const MAX_PLACE_ID_CHARS = 200;
  *      用户的判断，被 Places 刷新覆盖是最招骂的那种 bug；顺带省掉 20 次 LLM。
  *   2. 一个请求拿 20 家，让「这次对外抓了几次」有唯一的计数点（成本可审计）。
  *
+ * 3. 走 `facts()` 的窄 mask（Q16①）：分类器的输入与 `dineIn` 不要，
+ *    从 Enterprise + Atmosphere 档降到 Enterprise 档。
+ *
  * 两条纪律：
  *   - **节制条款在服务端也要挡**：客户端的 `REFRESH_BATCH_LIMIT` 是约定，
  *     这里的 400 才是护栏。绕过前端直接 POST 100 个 placeId 应该被拒。
@@ -64,7 +67,7 @@ function requirePlaceIds(raw: unknown): string[] {
 /** 一家店一条结果；抛出的异常在这里就地收敛成 `error`，不往外扩散 */
 async function fetchOne(places: PlaceProvider, placeId: string): Promise<RefreshDetailsItem> {
   try {
-    return { placeId, details: await places.details(placeId) };
+    return { placeId, details: await places.facts(placeId) };
   } catch (err) {
     // 上游 4xx 的 body 里可能回显请求参数（含 key）：只进日志，不进响应
     console.error(`[refresh] ${placeId} 重拉失败`, err);

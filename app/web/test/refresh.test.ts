@@ -17,7 +17,7 @@ import {
   sanitizeRefreshReport, sanitizeRefreshReports,
 } from '../src/lib/catalog/refresh-report';
 import {
-  AUTO_REFRESH_MIN_INTERVAL_MS, MANUAL_DISCOVERY_QUERY_LIMIT, REFRESH_BATCH_LIMIT,
+  AUTO_REFRESH_MIN_INTERVAL_MS, DISCOVERY_MAX_KM, MANUAL_DISCOVERY_QUERY_LIMIT, REFRESH_BATCH_LIMIT,
 } from '../src/lib/catalog/refresh-types';
 import type { RefreshReport } from '../src/lib/catalog/refresh-types';
 import { DETOUR, PARKING_MIN, SPEED_KMH, WALK_MAX_KM, travelEstimate } from '../src/lib/catalog/travel';
@@ -29,7 +29,7 @@ import {
 import {
   CATEGORY_QUERY_TERMS, codesWithoutQuery, nonCategoryTerms, unknownQueryCodes,
 } from '../src/lib/places/category-queries';
-import type { ImportPreview, PlaceCandidate, PlaceDetails } from '../src/lib/places/contract';
+import type { ImportPreview, PlaceCandidate, PlaceDetails, PlaceFacts } from '../src/lib/places/contract';
 import { createProfile, setActiveProfile } from '../src/lib/profiles/profiles';
 import { currentBackend, setStoreBackend } from '../src/lib/store/backend';
 import { isInPool, recentFetchLog } from '../src/lib/store/pool';
@@ -867,5 +867,106 @@ describe('刷新改变的是摇一摇看到的东西', () => {
     const nameChange = entry.changes.find((c) => c.field === 'name')!;
     expect(nameChange.before).toBe(seed(0).name);
     expect(nameChange.after).toBe('改过名的店');
+  });
+});
+
+describe('Q11：发现新店在 Details 之前按距离过滤，半径封顶 15 km', () => {
+  /** 正北方向偏 km 公里（1° 纬度 ≈ 111 km） */
+  const north = (km: number) => ({ lat: DM.lat + km / 111, lng: DM.lng });
+
+  it('Search 带回坐标时，半径外的候选连 preview（Details + LLM）都不做', async () => {
+    const port = fakePort({
+      discover: (q) => ({
+        query: q,
+        candidates: [
+          candidateOf('near-1', '近的', north(2)),
+          candidateOf('far-1', '远的', north(30)),
+        ],
+      }),
+      preview: (id) => previewOf(id, id, north(2)),
+    });
+    const result = await discoverNearby({ port, prefs: atDowntown({ radius: 'ALL' }), now: T0 });
+    expect(port.previewed).toEqual(['near-1']);
+    expect(result.discovered.map((d) => d.restaurant.placeId)).toEqual(['near-1']);
+  });
+
+  it('池子半径「不限」时，发现半径仍封顶在 DISCOVERY_MAX_KM', async () => {
+    const port = fakePort({
+      discover: (q) => ({
+        query: q,
+        candidates: [
+          candidateOf('in-1', '14 km', north(DISCOVERY_MAX_KM - 1)),
+          candidateOf('out-1', '16 km', north(DISCOVERY_MAX_KM + 1)),
+        ],
+      }),
+    });
+    const result = await discoverNearby({ port, prefs: atDowntown({ radius: 'ALL' }), now: T0 });
+    expect(result.withinKm).toBe(DISCOVERY_MAX_KM);
+    expect(port.previewed).toEqual(['in-1']);
+  });
+
+  it('自定义半径大于上限也被封顶；小于上限照用', async () => {
+    const port = fakePort();
+    expect((await discoverNearby({ port, prefs: atDowntown(), withinKm: 50, now: T0 })).withinKm)
+      .toBe(DISCOVERY_MAX_KM);
+    expect((await discoverNearby({ port, prefs: atDowntown(), withinKm: 3, now: T0 })).withinKm).toBe(3);
+  });
+
+  it('preview 名额先给最近的店；没坐标的排最后', async () => {
+    const many = Array.from({ length: DISCOVERY_PREVIEW_LIMIT + 2 }, (_, i) =>
+      candidateOf(`c-${i}`, `店${i}`, north(10 - i * 0.5)));
+    const noCoords = candidateOf('no-coords', '没坐标');
+    const port = fakePort({ discover: (q) => ({ query: q, candidates: [noCoords, ...many] }) });
+    await discoverNearby({ port, prefs: atDowntown({ radius: 'ALL' }), now: T0 });
+    expect(port.previewed).toHaveLength(DISCOVERY_PREVIEW_LIMIT);
+    expect(port.previewed).not.toContain('no-coords');
+    expect(port.previewed[0]).toBe(`c-${many.length - 1}`);
+  });
+
+  it('没坐标的候选仍在 Details 之后兜底过滤', async () => {
+    const port = fakePort({
+      discover: (q) => ({ query: q, candidates: [candidateOf('x-far', '远')] }),
+      preview: (id) => previewOf(id, id, north(30)),
+    });
+    const result = await discoverNearby({ port, prefs: atDowntown({ radius: 'ALL' }), now: T0 });
+    expect(port.previewed).toEqual(['x-far']);
+    expect(result.discovered).toEqual([]);
+  });
+
+  it('手动重扫的报告记下发现半径，并经得起落库净化；自动刷新没有', async () => {
+    const manual = await runRefresh('manual', { port: fakePort(), prefs: atDowntown({ radius: 'ALL' }), now: T0 });
+    expect(manual!.discoverWithinKm).toBe(DISCOVERY_MAX_KM);
+    expect(sanitizeRefreshReport(JSON.parse(JSON.stringify(manual)))!.discoverWithinKm).toBe(DISCOVERY_MAX_KM);
+    const forged = sanitizeRefreshReport({ ...manual, trigger: 'auto', discoverWithinKm: 15 });
+    expect(forged!.discoverWithinKm).toBeUndefined();
+  });
+});
+
+describe('Q16①：刷新只拿事实，不拿 dineIn 时沿用原值', () => {
+  function factsOf(r: SeedRestaurant): PlaceFacts {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { dineIn, reviewSnippets, editorialSummary, ...facts } = detailsOf(r);
+    return facts;
+  }
+
+  it('dineIn 缺失不算变化，也不会被补成「有堂食」', () => {
+    const takeout = { ...seed(0), dineIn: false };
+    expect(diffFacts(takeout, factsOf(takeout))).toEqual([]);
+    expect(mergeFacts(takeout, factsOf(takeout)).dineIn).toBe(false);
+  });
+
+  it('上游真给了 dineIn 时照常比对与合并', () => {
+    const r = seed(0);
+    const changes = diffFacts(r, { ...factsOf(r), dineIn: !r.dineIn });
+    expect(changes.map((c) => c.field)).toEqual(['dineIn']);
+    expect(mergeFacts(r, { ...factsOf(r), dineIn: !r.dineIn }).dineIn).toBe(!r.dineIn);
+  });
+
+  it('端到端：refreshExisting 拿到不含 dineIn 的事实，纯外带店仍是纯外带', async () => {
+    const target = seed(0);
+    const port = fakePort({ details: (id) => ({ placeId: id, details: factsOf({ ...target, dineIn: false }) }) });
+    const result = await refreshExisting({ port, placeIds: [target.placeId], now: T0 });
+    expect(result.failed).toEqual([]);
+    expect(result.updated.flatMap((u) => u.changes.map((c) => c.field))).not.toContain('dineIn');
   });
 });

@@ -4,7 +4,7 @@ title: S4/S5：刷新引擎、雷达重扫、附近列表与驾车时间估算
 status: implemented
 author: claude-opus-5
 created: 2026-09-28
-updated: 2026-09-30
+updated: 2026-10-01
 superseded_by:
 related: [design/0005, design/0006, design/0008, ADR-0008, ADR-0009]
 tags: [refresh, radar, geo, ux]
@@ -152,6 +152,25 @@ const PARKING_MIN = 3;       // 找车位与走进门
 - **Open:** 雷达上要不要显示不在池子里的「新发现」？倾向要，用不同颜色，
   这正是「发现」的意思。
 
+### 6.1 裁决记录 / Rulings
+
+**2026-10-01，Hao 批准，已实现（来自台账 Q11、Q16①）：**
+
+1. **发现新店的半径封顶 15 km**（`DISCOVERY_MAX_KM`）：实际半径 = `min(池子半径或自定义半径, 15)`。
+   池子的「不限」= 显示我选过的全部；发现的「不限」= 去全城找，两者语义不同，必须分开。
+   报告标题写明「N km 内新发现 M 家」（`RefreshReport.discoverWithinKm`）。
+2. **在 Details 之前按距离过滤**：Text Search 的 mask 加 `places.location`
+   （该 mask 已因 `rating` 落在 Enterprise 档，加坐标不抬档、不加钱 ——
+   原代码注释「要新开计费 SKU」是错的）。半径外的候选连 Details 和 LLM 分类都不做；
+   8 个「候选 → 分类」名额先给最近的店。没坐标的候选仍在 Details 之后兜底过滤。
+3. **刷新用单独的窄 mask**（`PlaceProvider.facts()` / `PlaceFacts`）：去掉 `dineIn`、
+   `editorialSummary`、`reviews`，从 Enterprise + Atmosphere 档降到 Enterprise 档。
+   刷新本来就不重算分类，这三个字段拿回来就扔。`dineIn` 沿用导入时的值，
+   刷新拿不到时**保留原值**，不按「有堂食」补。导入仍走全字段的 `details()`。
+
+验收：285 个单测（新增 12 条，含 FieldMask 钉死测试）；真 Places API 实测，
+Text Search 8/8 候选带坐标，`facts()` 返回不含 `dineIn`。
+
 ## 7. 落地计划 / Rollout
 
 S4（CTO）：刷新引擎 + 报告落库 + 节制条款 + 测试。
@@ -164,3 +183,4 @@ S5（前端）：雷达 SVG + 附近列表 + 驾车时间 + 刷新报告界面�
 | ---- | -------- | -- |
 | 2026-09-28 | 初稿：雷达形态的讨论与结论、刷新流水线、驾车估算 | claude-opus-5 |
 | 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |
+| 2026-10-01 | §6.1 裁决记录：发现半径封顶 15 km、Details 前按距离过滤、刷新窄 mask（Q11、Q16①） | claude-opus-5-5 |
