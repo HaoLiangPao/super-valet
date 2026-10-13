@@ -5,8 +5,8 @@
  * 数据经过与用户导入完全相同的流水线：Google Places 出事实，
  * DeepSeek 出分类，防幻觉边界见 design/0005 §4.2。
  *
- * 生成于 2026-09-26T05:07:59.847Z
- * 共 59 家（不含种子 15 家；`CATALOG` 会把两者合并）
+ * 生成于 2026-10-13T00:48:45.714Z
+ * 共 104 家（不含种子 15 家；`CATALOG` 会把两者合并）
  *
  * 每家店的 `fetchedAt` 用于 30 天 TTL（design/0005 §4.8）。
  */
@@ -85,6 +85,73 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:07:59.496Z",
     "summary": "Bhima's · AS_INDIAN(0.90) · ★4.6/443 · 价位1 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJiy-Xw9rX1IkRqqqR80daOUQ",
+      "name": "Desi Bar & Grill (Markham) | Best Indian restaurant in Markham",
+      "address": "7710 Markham Rd, Markham, ON L3S 4S1, Canada",
+      "lat": 43.853772,
+      "lng": -79.2555689,
+      "dineIn": true,
+      "priceLevel": null,
+      "rating": 4.6,
+      "ratingCount": 2308,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "12:00",
+          "close": "24:00"
+        },
+        {
+          "day": 1,
+          "open": "16:00",
+          "close": "24:00"
+        },
+        {
+          "day": 2,
+          "open": "16:00",
+          "close": "24:00"
+        },
+        {
+          "day": 3,
+          "open": "16:00",
+          "close": "24:00"
+        },
+        {
+          "day": 4,
+          "open": "16:00",
+          "close": "24:00"
+        },
+        {
+          "day": 5,
+          "open": "12:00",
+          "close": "25:00"
+        },
+        {
+          "day": 6,
+          "open": "12:00",
+          "close": "25:00"
+        }
+      ],
+      "primary": "AS_INDIAN",
+      "tags": [
+        "AS_INDIAN"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "印度餐厅，适合晚餐",
+      "distanceKm": 5.4,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:47:52.662Z",
+    "summary": "Desi Bar & Grill (Markham) | Best Indian restaurant in Markham · AS_INDIAN(0.90) · ★4.6/2308 · 价位未知 · 7段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -222,6 +289,142 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJmXAkU_ksK4gRcvE7LtNFf6g",
+      "name": "Anji Izakaya",
+      "address": "7059 Yonge St, Thornhill, ON L3T 2A6, Canada",
+      "lat": 43.7996682,
+      "lng": -79.42024719999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.7,
+      "ratingCount": 1381,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "17:30",
+          "close": "26:30"
+        },
+        {
+          "day": 1,
+          "open": "17:30",
+          "close": "26:30"
+        },
+        {
+          "day": 2,
+          "open": "17:30",
+          "close": "26:30"
+        },
+        {
+          "day": 3,
+          "open": "17:30",
+          "close": "26:30"
+        },
+        {
+          "day": 4,
+          "open": "17:30",
+          "close": "26:30"
+        },
+        {
+          "day": 5,
+          "open": "17:30",
+          "close": "26:45"
+        },
+        {
+          "day": 6,
+          "open": "17:30",
+          "close": "26:45"
+        }
+      ],
+      "primary": "AS_IZAKAYA",
+      "tags": [
+        "AS_IZAKAYA",
+        "AS_KOREAN"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "日式居酒屋，但韩式风味明显",
+      "distanceKm": 9.9,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:47:33.758Z",
+    "summary": "Anji Izakaya · AS_IZAKAYA(0.80) · ★4.7/1381 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJe8oOcm_T1IkRu3661ceOuZo",
+      "name": "Gyubee Japanese Grill (Markham)",
+      "address": "7100 Woodbine Ave #100, Markham, ON L3R 5J2, Canada",
+      "lat": 43.8158052,
+      "lng": -79.34984779999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.8,
+      "ratingCount": 16411,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 1,
+          "open": "12:00",
+          "close": "23:00"
+        },
+        {
+          "day": 2,
+          "open": "12:00",
+          "close": "23:00"
+        },
+        {
+          "day": 3,
+          "open": "12:00",
+          "close": "23:00"
+        },
+        {
+          "day": 4,
+          "open": "12:00",
+          "close": "23:00"
+        },
+        {
+          "day": 5,
+          "open": "12:00",
+          "close": "24:00"
+        },
+        {
+          "day": 6,
+          "open": "11:00",
+          "close": "24:00"
+        }
+      ],
+      "primary": "AS_IZAKAYA",
+      "tags": [
+        "AS_IZAKAYA",
+        "AS_KBBQ"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "日式烧烤，适合晚餐",
+      "distanceKm": 4.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:28.625Z",
+    "summary": "Gyubee Japanese Grill (Markham) · AS_IZAKAYA(0.90) · ★4.8/16411 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJlbPffRfV1IkRpISScKoQQIE",
       "name": "KUROKI IZAKAYA 黑木居酒屋",
       "address": "28 South Unionville Ave #1056, Unionville, ON L3R 1J5, Canada",
@@ -285,6 +488,102 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:02:34.443Z",
     "summary": "KUROKI IZAKAYA 黑木居酒屋 · AS_IZAKAYA(0.90) · ★4.6/397 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJOQpVuZ_T1IkR4hFHbbjwAzw",
+      "name": "Wagyu Suki",
+      "address": "3636 Steeles Ave E Unit 110 - 111, Markham, ON L3R 1K9, Canada",
+      "lat": 43.819437799999996,
+      "lng": -79.33099419999999,
+      "dineIn": true,
+      "priceLevel": 4,
+      "rating": 4.4,
+      "ratingCount": 863,
+      "closedDays": [
+        2
+      ],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 0,
+          "open": "16:00",
+          "close": "22:30"
+        },
+        {
+          "day": 1,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 1,
+          "open": "16:30",
+          "close": "22:30"
+        },
+        {
+          "day": 3,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 3,
+          "open": "16:30",
+          "close": "22:30"
+        },
+        {
+          "day": 4,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 4,
+          "open": "16:30",
+          "close": "22:30"
+        },
+        {
+          "day": 5,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 5,
+          "open": "16:30",
+          "close": "23:00"
+        },
+        {
+          "day": 6,
+          "open": "11:15",
+          "close": "14:30"
+        },
+        {
+          "day": 6,
+          "open": "16:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "AS_IZAKAYA",
+      "tags": [
+        "AS_IZAKAYA",
+        "AS_SUSHI"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "日式火锅与寿司组合",
+      "distanceKm": 3.9,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:38.164Z",
+    "summary": "Wagyu Suki · AS_IZAKAYA(0.80) · ★4.4/863 · 价位4 · 12段营业 · 周2休 · 有堂食"
   },
   {
     "restaurant": {
@@ -780,6 +1079,91 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJXd15bDzV1IkRLFdRpk1BvHk",
+      "name": "Sukhothai (in Markham by Scarborough)",
+      "address": "2 Fenton Rd Unit 2, Markham, ON L3R 7B4, Canada",
+      "lat": 43.827512999999996,
+      "lng": -79.2924426,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.3,
+      "ratingCount": 630,
+      "closedDays": [
+        1
+      ],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:30",
+          "close": "21:00"
+        },
+        {
+          "day": 2,
+          "open": "11:30",
+          "close": "14:30"
+        },
+        {
+          "day": 2,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 3,
+          "open": "11:30",
+          "close": "14:30"
+        },
+        {
+          "day": 3,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 4,
+          "open": "11:30",
+          "close": "14:30"
+        },
+        {
+          "day": 4,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 5,
+          "open": "11:30",
+          "close": "14:30"
+        },
+        {
+          "day": 5,
+          "open": "17:00",
+          "close": "22:00"
+        },
+        {
+          "day": 6,
+          "open": "11:30",
+          "close": "22:00"
+        }
+      ],
+      "primary": "AS_THAI",
+      "tags": [
+        "AS_THAI"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "正宗泰式料理",
+      "distanceKm": 3.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:45.596Z",
+    "summary": "Sukhothai (in Markham by Scarborough) · AS_THAI(0.90) · ★4.3/630 · 价位2 · 10段营业 · 周1休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJt0OMDN3V1IkRNKbZyDZwdKw",
       "name": "Pho Dac Biet Vietnamese Cuisine",
       "address": "8360 Kennedy Rd Unit B1, Unionville, ON L3R 9W4, Canada",
@@ -886,6 +1270,129 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJOwfWK2rW1IkRAQMi-P2ofGs",
+      "name": "Lee's Kitchen",
+      "address": "5694 Hwy 7 Unit 7, Markham, ON L3P 1B4, Canada",
+      "lat": 43.8719448,
+      "lng": -79.268866,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 123,
+      "closedDays": [
+        1
+      ],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:30",
+          "close": "21:00"
+        },
+        {
+          "day": 2,
+          "open": "11:30",
+          "close": "21:00"
+        },
+        {
+          "day": 3,
+          "open": "11:30",
+          "close": "21:00"
+        },
+        {
+          "day": 4,
+          "open": "11:30",
+          "close": "21:00"
+        },
+        {
+          "day": 5,
+          "open": "11:30",
+          "close": "21:30"
+        },
+        {
+          "day": 6,
+          "open": "11:30",
+          "close": "21:30"
+        }
+      ],
+      "primary": "CN_AMERICANIZED",
+      "tags": [
+        "CN_AMERICANIZED",
+        "CN_FAST"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.8,
+      "reason": "美式中餐外卖店",
+      "distanceKm": 4.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:17.626Z",
+    "summary": "Lee's Kitchen · CN_AMERICANIZED(0.80) · ★4.1/123 · 价位1 · 6段营业 · 周1休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJz8prIwrW1IkRqEk42TtGTKs",
+      "name": "Tangra Villa",
+      "address": "411 Manhattan Dr #3C, Markham, ON L3P 7P4, Canada",
+      "lat": 43.881117499999995,
+      "lng": -79.2887779,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.4,
+      "ratingCount": 349,
+      "closedDays": [
+        0,
+        1
+      ],
+      "serviceWindows": [
+        {
+          "day": 2,
+          "open": "11:00",
+          "close": "21:00"
+        },
+        {
+          "day": 3,
+          "open": "11:00",
+          "close": "21:00"
+        },
+        {
+          "day": 4,
+          "open": "11:00",
+          "close": "21:00"
+        },
+        {
+          "day": 5,
+          "open": "11:00",
+          "close": "21:00"
+        },
+        {
+          "day": 6,
+          "open": "12:00",
+          "close": "21:00"
+        }
+      ],
+      "primary": "CN_AMERICANIZED",
+      "tags": [
+        "CN_AMERICANIZED"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.8,
+      "reason": "午餐特价，美式中餐风格",
+      "distanceKm": 4.1,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:12.172Z",
+    "summary": "Tangra Villa · CN_AMERICANIZED(0.80) · ★4.4/349 · 价位1 · 5段营业 · 周01休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJaeTnfgDV1IkRsLd7I1O40QU",
       "name": "Number One BBQ Bar & Live Entertainment 南波萬烧烤酒馆",
       "address": "3760 Hwy 7 Unit 1, Markham, ON L3R 0N2, Canada",
@@ -955,6 +1462,69 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJmby4O83V1IkRz1mI3Tf5-AI",
+      "name": "Big Beef Bowl",
+      "address": "8362 Kennedy Rd, Unionville, ON L3R 9W5, Canada",
+      "lat": 43.8603294,
+      "lng": -79.3033226,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.3,
+      "ratingCount": 1265,
+      "closedDays": [
+        3
+      ],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "10:30",
+          "close": "22:00"
+        },
+        {
+          "day": 1,
+          "open": "11:00",
+          "close": "22:00"
+        },
+        {
+          "day": 2,
+          "open": "11:00",
+          "close": "22:00"
+        },
+        {
+          "day": 4,
+          "open": "11:00",
+          "close": "22:00"
+        },
+        {
+          "day": 5,
+          "open": "11:00",
+          "close": "22:00"
+        },
+        {
+          "day": 6,
+          "open": "10:30",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_NOODLE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "粤式手工面馆",
+      "distanceKm": 1.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:15.101Z",
+    "summary": "Big Beef Bowl · CN_CANTON(0.90) · ★4.3/1265 · 价位1 · 6段营业 · 周3休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJAdkyAADV1IkRvOOh1wdIPDw",
       "name": "Cantonese Best BBQ 港式燒味大王",
       "address": "11 Fairburn Dr Unit 19, Markham, ON L6G 0A4, Canada",
@@ -991,6 +1561,146 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:06:50.505Z",
     "summary": "Cantonese Best BBQ 港式燒味大王 · CN_CANTON(0.90) · ★3.9/170 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJKR4GLFTU1IkREPHMmBbU0Jg",
+      "name": "Casa Victoria Fine Dining and Banquet",
+      "address": "8601 Warden Ave. Unit 4-6, Unionville, ON L3R 0B5, Canada",
+      "lat": 43.8584141,
+      "lng": -79.33280599999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4,
+      "ratingCount": 1729,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "21:30"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_DIMSUM"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.95,
+      "reason": "正宗粤菜与点心",
+      "distanceKm": 1,
+      "bucket": "WALK"
+    },
+    "fetchedAt": "2026-10-13T00:46:18.907Z",
+    "summary": "Casa Victoria Fine Dining and Banquet · CN_CANTON(0.95) · ★4/1729 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJlerhTe3V1IkRYi9_BCFzLZA",
+      "name": "CheungKee. Greentea Restaurant",
+      "address": "3235 Hwy 7 Unit 18, Markham, ON L3R 3P3, Canada",
+      "lat": 43.848478199999995,
+      "lng": -79.3487274,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.3,
+      "ratingCount": 2430,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:00",
+          "close": "22:30"
+        },
+        {
+          "day": 1,
+          "open": "11:00",
+          "close": "22:30"
+        },
+        {
+          "day": 2,
+          "open": "11:00",
+          "close": "22:30"
+        },
+        {
+          "day": 3,
+          "open": "11:00",
+          "close": "22:30"
+        },
+        {
+          "day": 4,
+          "open": "11:00",
+          "close": "22:30"
+        },
+        {
+          "day": 5,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 6,
+          "open": "11:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_DIMSUM"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "粤菜为主，评论提及经典菜式",
+      "distanceKm": 2.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:07.968Z",
+    "summary": "CheungKee. Greentea Restaurant · CN_CANTON(0.90) · ★4.3/2430 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJ4bf1jnDW1IkRepm1-Ro1SdM",
+      "name": "Congee Queen",
+      "address": "5308 Hwy 7 Unit 5-7, Markham, ON L3P 1B9, Canada",
+      "lat": 43.8684838,
+      "lng": -79.2823015,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.9,
+      "ratingCount": 3082,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.5,
+      "reason": "粤式粥品专门店",
+      "distanceKm": 3.6,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:23.379Z",
+    "summary": "Congee Queen · CN_CANTON(0.50) · ★3.9/3082 · 价位2 · 1段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -1070,6 +1780,259 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJ3yXycfcsK4gRrqHHqsuX_M4",
+      "name": "Legend Chinese Restaurant 麗晶酒家",
+      "address": "5 Glen Cameron Rd, Thornhill, ON L3T 5W2, Canada",
+      "lat": 43.804859199999996,
+      "lng": -79.420512,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.2,
+      "ratingCount": 1228,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "09:30",
+          "close": "22:00"
+        },
+        {
+          "day": 1,
+          "open": "10:00",
+          "close": "22:00"
+        },
+        {
+          "day": 2,
+          "open": "10:00",
+          "close": "22:00"
+        },
+        {
+          "day": 3,
+          "open": "10:00",
+          "close": "22:00"
+        },
+        {
+          "day": 4,
+          "open": "10:00",
+          "close": "22:00"
+        },
+        {
+          "day": 5,
+          "open": "10:00",
+          "close": "22:30"
+        },
+        {
+          "day": 6,
+          "open": "09:30",
+          "close": "22:30"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_DIMSUM"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "传统粤菜及点心",
+      "distanceKm": 9.5,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:46:52.494Z",
+    "summary": "Legend Chinese Restaurant 麗晶酒家 · CN_CANTON(0.90) · ★4.2/1228 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJJx_YY2XT1IkRON5cac93zKQ",
+      "name": "QJD Peking Duck （Markham）Restaurant",
+      "address": "7095 Woodbine Ave, Markham, ON L3R 1A3, Canada",
+      "lat": 43.8167158,
+      "lng": -79.34870839999999,
+      "dineIn": true,
+      "priceLevel": null,
+      "rating": 4.2,
+      "ratingCount": 2172,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "10:00",
+          "close": "21:30"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_DIMSUM"
+      ],
+      "soloFriendly": false,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打北京烤鸭，但整体为经典中餐",
+      "distanceKm": 4.6,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:30.090Z",
+    "summary": "QJD Peking Duck （Markham）Restaurant · CN_CANTON(0.90) · ★4.2/2172 · 价位未知 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJw1hyf2TT1IkRd18P7fC0nxg",
+      "name": "Ritzy Palace Chinese Cuisine",
+      "address": "7301 Woodbine Ave, Markham, ON L3R 3V7, Canada",
+      "lat": 43.8212602,
+      "lng": -79.34968660000001,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.7,
+      "ratingCount": 1611,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_DIMSUM"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "传统港式点心茶楼",
+      "distanceKm": 4.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:25.259Z",
+    "summary": "Ritzy Palace Chinese Cuisine · CN_CANTON(0.90) · ★3.7/1611 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJ65AvR83V1IkRz-T5DpaJIDg",
+      "name": "Top Choice Restaurant",
+      "address": "8362 Kennedy Rd, Unionville, ON L3R 9W5, Canada",
+      "lat": 43.8600432,
+      "lng": -79.3035156,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.9,
+      "ratingCount": 985,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "16:00",
+          "close": "22:30"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "用户评论提到正宗粤菜",
+      "distanceKm": 1.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:01.959Z",
+    "summary": "Top Choice Restaurant · CN_CANTON(0.90) · ★3.9/985 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJLc0OlFbU1IkRZXIS_mJXVw4",
+      "name": "Wonton Hut Noodle Bar",
+      "address": "3760 Hwy 7, Markham, ON L3R 0N2, Canada",
+      "lat": 43.8566329,
+      "lng": -79.3325613,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.4,
+      "ratingCount": 851,
+      "closedDays": [
+        1
+      ],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "20:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_NOODLE",
+        "CN_HK_CAFE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打港式云吞面，评论提及香港风味",
+      "distanceKm": 0.9,
+      "bucket": "WALK"
+    },
+    "fetchedAt": "2026-10-13T00:46:34.152Z",
+    "summary": "Wonton Hut Noodle Bar · CN_CANTON(0.90) · ★4.4/851 · 价位1 · 1段营业 · 周1休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJualBTaXV1IkRwaUxO9CZ-Rw",
+      "name": "Yang's Braised Chicken Rice(First Markham Place)",
+      "address": "3235 Hwy 7 Unit 17, Markham, ON L3R 3P3, Canada",
+      "lat": 43.8484618,
+      "lng": -79.3488775,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 327,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "26:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_NOODLE",
+        "CN_DUMPLING"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.7,
+      "reason": "炖鸡饭为主，粤式风格",
+      "distanceKm": 2.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:37.870Z",
+    "summary": "Yang's Braised Chicken Rice(First Markham Place) · CN_CANTON(0.70) · ★4.1/327 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJq6qmctLV1IkRwWu7_BI1Dxg",
       "name": "名粤軒 Amazing Seafood House",
       "address": "4721 Hwy 7 #4, Markham, ON L3R 1M7, Canada",
@@ -1144,6 +2107,321 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJqXFBsM3V1IkROnQ4oQCbUfw",
+      "name": "知味煲仔饭 (Unionville) Good Taste Casserole Rice",
+      "address": "8392 Kennedy Rd, Unionville, ON L3R 0W4, Canada",
+      "lat": 43.8612396,
+      "lng": -79.3049303,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 793,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_CANTON",
+      "tags": [
+        "CN_CANTON",
+        "CN_BREAKFAST",
+        "CN_NOODLE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "粤式煲仔饭为主",
+      "distanceKm": 1.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:11.731Z",
+    "summary": "知味煲仔饭 (Unionville) Good Taste Casserole Rice · CN_CANTON(0.90) · ★4.1/793 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJs35acgjT1IkRdJzhIHj0K-4",
+      "name": "Sam’s Congee Delight",
+      "address": "7354 Woodbine Ave, Markham, ON L3R 1A5, Canada",
+      "lat": 43.822372,
+      "lng": -79.35166199999999,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 3.9,
+      "ratingCount": 1492,
+      "closedDays": [
+        2
+      ],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "08:30",
+          "close": "17:00"
+        }
+      ],
+      "primary": "CN_CONGEE",
+      "tags": [
+        "CN_CONGEE",
+        "CN_CANTON",
+        "CN_BREAKFAST"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "breakfast",
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "专营粤式粥品与港式早点",
+      "distanceKm": 4.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:54.296Z",
+    "summary": "Sam’s Congee Delight · CN_CONGEE(0.90) · ★3.9/1492 · 价位1 · 1段营业 · 周2休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJXXqDFYbT1IkRNABHDwIICnE",
+      "name": "Yin Ji Chang Fen",
+      "address": "7020-7080, 7010 Warden Ave. #17-18, Markham, ON L3R 5Y3, Canada",
+      "lat": 43.8202393,
+      "lng": -79.3252497,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.2,
+      "ratingCount": 2118,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "08:00",
+          "close": "25:00"
+        }
+      ],
+      "primary": "CN_CONGEE",
+      "tags": [
+        "CN_CONGEE",
+        "CN_CANTON",
+        "CN_BREAKFAST"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "latenight"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "广式粥粉专门店",
+      "distanceKm": 3.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:18.897Z",
+    "summary": "Yin Ji Chang Fen · CN_CONGEE(0.90) · ★4.2/2118 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJ62YuCXfV1IkR2IoPtlAEI6g",
+      "name": "滿意粥粉面 Very Good Congee & Noodle",
+      "address": "2R1, 9390 Woodbine Ave Fl 2, Markham, ON L6C 0M5, Canada",
+      "lat": 43.872499,
+      "lng": -79.364375,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4,
+      "ratingCount": 586,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "10:00",
+          "close": "20:00"
+        }
+      ],
+      "primary": "CN_CONGEE",
+      "tags": [
+        "CN_CONGEE",
+        "CN_NOODLE",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打粥粉面，港式风味",
+      "distanceKm": 3.9,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:58.668Z",
+    "summary": "滿意粥粉面 Very Good Congee & Noodle · CN_CONGEE(0.90) · ★4/586 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJuzMz3MzV1IkRU_FkewPd91o",
+      "name": "369 Shanghai Dim Sum",
+      "address": "8380 Kennedy Rd c8, Unionville, ON L3R 2N9, Canada",
+      "lat": 43.8607601,
+      "lng": -79.3043524,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.6,
+      "ratingCount": 473,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_DIMSUM",
+      "tags": [
+        "CN_DIMSUM",
+        "CN_DUMPLING",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打点心与粤式小菜",
+      "distanceKm": 1.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:05.494Z",
+    "summary": "369 Shanghai Dim Sum · CN_DIMSUM(0.90) · ★3.6/473 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJM6NNOcjT1IkReiN83hXNSvI",
+      "name": "Century Banquet Restaurant",
+      "address": "398 Ferrier St, Markham, ON L3R 2Z5, Canada",
+      "lat": 43.8195763,
+      "lng": -79.3312677,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.9,
+      "ratingCount": 1548,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_DIMSUM",
+      "tags": [
+        "CN_DIMSUM",
+        "CN_CANTON"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打点心，适合午餐",
+      "distanceKm": 3.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:41.867Z",
+    "summary": "Century Banquet Restaurant · CN_DIMSUM(0.90) · ★3.9/1548 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJ0wRrUjzU1IkRY7Pc6F1VDTk",
+      "name": "Fancy Chinese Cuisine",
+      "address": "7750 Kennedy Rd #4, Markham, ON L3R 0A7, Canada",
+      "lat": 43.842621,
+      "lng": -79.30600629999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.9,
+      "ratingCount": 1931,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "21:00"
+        }
+      ],
+      "primary": "CN_DIMSUM",
+      "tags": [
+        "CN_DIMSUM",
+        "CN_CANTON",
+        "CN_BUBBLETEA"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "breakfast",
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "传统早茶点心为主",
+      "distanceKm": 1.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:34.111Z",
+    "summary": "Fancy Chinese Cuisine · CN_DIMSUM(0.90) · ★3.9/1931 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJI1tMqYsrK4gRdkPWW2pXn-4",
+      "name": "Lobster Port",
+      "address": "7501 Woodbine Ave, Markham, ON L3R 2W1, Canada",
+      "lat": 43.8266792,
+      "lng": -79.350956,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.1,
+      "ratingCount": 2166,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_DIMSUM",
+      "tags": [
+        "CN_DIMSUM",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "breakfast",
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打点心与粤式海鲜",
+      "distanceKm": 3.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:14.652Z",
+    "summary": "Lobster Port · CN_DIMSUM(0.90) · ★4.1/2166 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJgTz7yM7V1IkRHuvHQMsio8A",
       "name": "Longing Fusion Cuisine 龙庭食府",
       "address": "1661 Denison St T1, Markham, ON L3R 6E4, Canada",
@@ -1180,6 +2458,375 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:07:10.279Z",
     "summary": "Longing Fusion Cuisine 龙庭食府 · CN_DIMSUM(0.80) · ★3.8/192 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJh7SnFpXU1IkRIkOVxRqcj7g",
+      "name": "Skyview Fusion Cuisine",
+      "address": "8261 Woodbine Ave #8, Markham, ON L3R 8Z5, Canada",
+      "lat": 43.8444991,
+      "lng": -79.35481,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.9,
+      "ratingCount": 3621,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "09:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_DIMSUM",
+      "tags": [
+        "CN_DIMSUM",
+        "CN_CANTON"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "lunch"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打点心，评论多次提及",
+      "distanceKm": 2.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:48.463Z",
+    "summary": "Skyview Fusion Cuisine · CN_DIMSUM(0.90) · ★3.9/3621 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJZZ5q1UkrK4gRkqMPRqSUJd4",
+      "name": "Chinese Dumpling House",
+      "address": "505 Hwy 7, Thornhill, ON L3T 7T1, Canada",
+      "lat": 43.8419551,
+      "lng": -79.3864098,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.2,
+      "ratingCount": 1061,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "22:30"
+        }
+      ],
+      "primary": "CN_DUMPLING",
+      "tags": [
+        "CN_DUMPLING",
+        "CN_NOODLE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "主打饺子，兼售面条",
+      "distanceKm": 5.3,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:45:58.069Z",
+    "summary": "Chinese Dumpling House · CN_DUMPLING(0.80) · ★4.2/1061 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJX3vySnHV1IkRaSg2twVY5ZQ",
+      "name": "Mom's Pan-Fried Bun",
+      "address": "8362 Kennedy Rd, Markham, ON L3R 9W5, Canada",
+      "lat": 43.8603242,
+      "lng": -79.3033707,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.6,
+      "ratingCount": 1559,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "10:00",
+          "close": "22:00"
+        }
+      ],
+      "primary": "CN_DUMPLING",
+      "tags": [
+        "CN_DUMPLING",
+        "CN_NOODLE",
+        "CN_FAST"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "主打煎包和面食",
+      "distanceKm": 1.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:25.153Z",
+    "summary": "Mom's Pan-Fried Bun · CN_DUMPLING(0.90) · ★4.6/1559 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJseRjqSHV1IkR5gg1UDmb6MI",
+      "name": "Bingz Crispy Burger",
+      "address": "3229 Hwy 7 Unit 11&12, Markham, ON L3R 3P3, Canada",
+      "lat": 43.8483015,
+      "lng": -79.34933339999999,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.5,
+      "ratingCount": 2389,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "25:00"
+        }
+      ],
+      "primary": "CN_FAST",
+      "tags": [
+        "CN_FAST",
+        "WS_BURGER"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.8,
+      "reason": "中式快餐连锁，主营汉堡小吃",
+      "distanceKm": 2.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:24.632Z",
+    "summary": "Bingz Crispy Burger · CN_FAST(0.80) · ★4.5/2389 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJxaxx0UTU1IkR-TdtCMpEwIw",
+      "name": "Good Catch Bar & Cafe",
+      "address": "179 Enterprise Blvd #109, Unionville, ON L6G 0A2, Canada",
+      "lat": 43.8496628,
+      "lng": -79.3224182,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4,
+      "ratingCount": 3668,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 1,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 2,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 3,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 4,
+          "open": "11:00",
+          "close": "23:00"
+        },
+        {
+          "day": 5,
+          "open": "11:00",
+          "close": "26:00"
+        },
+        {
+          "day": 6,
+          "open": "11:00",
+          "close": "26:00"
+        }
+      ],
+      "primary": "CN_HK_CAFE",
+      "tags": [
+        "CN_HK_CAFE",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.8,
+      "reason": "港式茶餐厅风格，提供经典港式菜品",
+      "distanceKm": 0.4,
+      "bucket": "WALK"
+    },
+    "fetchedAt": "2026-10-13T00:48:35.441Z",
+    "summary": "Good Catch Bar & Cafe · CN_HK_CAFE(0.80) · ★4/3668 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJmUUSWx_V1IkRowdjvbWSkhk",
+      "name": "Hai Tang Cafe & Takeout",
+      "address": "38 Buttonfield Rd, Markham, ON L3R 9G9, Canada",
+      "lat": 43.8685136,
+      "lng": -79.357751,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4,
+      "ratingCount": 1447,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "08:00",
+          "close": "21:00"
+        }
+      ],
+      "primary": "CN_HK_CAFE",
+      "tags": [
+        "CN_HK_CAFE",
+        "CN_BREAKFAST",
+        "CN_BUBBLETEA"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "港式茶餐厅",
+      "distanceKm": 3.3,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:29.530Z",
+    "summary": "Hai Tang Cafe & Takeout · CN_HK_CAFE(0.90) · ★4/1447 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJowxa39DX1IkREbPxankjaSI",
+      "name": "M & Y Restaurant",
+      "address": "8 Washington St, Markham, ON L3P 2R2, Canada",
+      "lat": 43.8748998,
+      "lng": -79.25917369999999,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4,
+      "ratingCount": 236,
+      "closedDays": [
+        3
+      ],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "20:00"
+        }
+      ],
+      "primary": "CN_HK_CAFE",
+      "tags": [
+        "CN_HK_CAFE",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.8,
+      "reason": "用户评论提到港式食物和经典港式咖啡馆",
+      "distanceKm": 5.6,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:46:41.930Z",
+    "summary": "M & Y Restaurant · CN_HK_CAFE(0.80) · ★4/236 · 价位1 · 1段营业 · 周3休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJU0dBsM3V1IkRQiMHLBqual0",
+      "name": "New City Restaurant",
+      "address": "8392 Kennedy Rd, Unionville, ON L3R 0W4, Canada",
+      "lat": 43.861219899999995,
+      "lng": -79.3050986,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 885,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "08:00",
+          "close": "20:00"
+        }
+      ],
+      "primary": "CN_HK_CAFE",
+      "tags": [
+        "CN_HK_CAFE",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "港式茶餐厅，提供多种港式经典菜品",
+      "distanceKm": 1.6,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:38.404Z",
+    "summary": "New City Restaurant · CN_HK_CAFE(0.90) · ★4.1/885 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJf2WIdN3U1IkRKSxV53RvQMY",
+      "name": "Woodstone Eatery",
+      "address": "10 Apple Creek Blvd, Markham, ON L3R 0P4, Canada",
+      "lat": 43.8575024,
+      "lng": -79.3590351,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 1336,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "08:30",
+          "close": "21:00"
+        }
+      ],
+      "primary": "CN_HK_CAFE",
+      "tags": [
+        "CN_HK_CAFE",
+        "CN_CANTON"
+      ],
+      "soloFriendly": true,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "用户评论明确提到是港式茶餐厅",
+      "distanceKm": 2.9,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:04.728Z",
+    "summary": "Woodstone Eatery · CN_HK_CAFE(0.90) · ★4.1/1336 · 价位1 · 1段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -1464,6 +3111,81 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJF0nmu8TV1IkRexelh7JXrGE",
+      "name": "QQ Noodle King",
+      "address": "4300 Steeles Ave E, Markham, ON L3R 0Y5, Canada",
+      "lat": 43.825233399999995,
+      "lng": -79.306168,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.4,
+      "ratingCount": 142,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "10:00",
+          "close": "20:00"
+        }
+      ],
+      "primary": "CN_NOODLE",
+      "tags": [
+        "CN_NOODLE",
+        "CN_DUMPLING"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "武汉干面、牛肉面等面食为主",
+      "distanceKm": 3.4,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:21.373Z",
+    "summary": "QQ Noodle King · CN_NOODLE(0.90) · ★4.4/142 · 价位1 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJu_ZhGMLV1IkR9I6MBtKzzsE",
+      "name": "The Noodle Bar Markham",
+      "address": "3603 Hwy 7 #106, Markham, ON L3R 8W3, Canada",
+      "lat": 43.8534272,
+      "lng": -79.33807999999999,
+      "dineIn": true,
+      "priceLevel": 1,
+      "rating": 4.1,
+      "ratingCount": 457,
+      "closedDays": [
+        2
+      ],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:30",
+          "close": "19:30"
+        }
+      ],
+      "primary": "CN_NOODLE",
+      "tags": [
+        "CN_NOODLE",
+        "CN_CANTON",
+        "CN_HK_CAFE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "主打车仔面，港式风味",
+      "distanceKm": 1.2,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:30.838Z",
+    "summary": "The Noodle Bar Markham · CN_NOODLE(0.80) · ★4.1/457 · 价位1 · 1段营业 · 周2休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJC8UmJADV1IkRykbZopPOveY",
       "name": "YEE'S HAND PULLED NOODLES (Scarborough)老叶兰州牛肉拉面",
       "address": "668 Silver Star Blvd Unit 202, Scarborough, ON M1V 0A9, Canada",
@@ -1677,6 +3399,73 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJT_xhMsjV1IkRJJgKD8w0e6Y",
+      "name": "Chat Bar",
+      "address": "187 Main St Unionville, Unionville, ON L3R 2G8, Canada",
+      "lat": 43.8675898,
+      "lng": -79.3119739,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.5,
+      "ratingCount": 2476,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "12:00",
+          "close": "26:00"
+        },
+        {
+          "day": 1,
+          "open": "16:00",
+          "close": "26:00"
+        },
+        {
+          "day": 2,
+          "open": "16:00",
+          "close": "26:00"
+        },
+        {
+          "day": 3,
+          "open": "16:00",
+          "close": "26:00"
+        },
+        {
+          "day": 4,
+          "open": "16:00",
+          "close": "26:00"
+        },
+        {
+          "day": 5,
+          "open": "15:00",
+          "close": "26:00"
+        },
+        {
+          "day": 6,
+          "open": "12:00",
+          "close": "26:00"
+        }
+      ],
+      "primary": "CN_SKEWER",
+      "tags": [
+        "CN_SKEWER"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "latenight"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "用户评论提到烤串，适合深夜聚餐",
+      "distanceKm": 1.8,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:45.362Z",
+    "summary": "Chat Bar · CN_SKEWER(0.80) · ★4.5/2476 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJxdpzi17T1IkRPijDbB7Ab44",
       "name": "肠酒烧烤&Changjiu BBQ Restaurant",
       "address": "3101 Kennedy Rd Unit B10, Scarborough, ON M1V 5P4, Canada",
@@ -1813,6 +3602,111 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJgRoF6u3U1IkRFRJgdQOkG-A",
+      "name": "Mabu Generation",
+      "address": "3235 Hwy 7 #23-26, Markham, ON L3R 3P9, Canada",
+      "lat": 43.8486385,
+      "lng": -79.34794819999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.5,
+      "ratingCount": 5001,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:00",
+          "close": "24:30"
+        },
+        {
+          "day": 1,
+          "open": "11:00",
+          "close": "24:30"
+        },
+        {
+          "day": 2,
+          "open": "11:00",
+          "close": "24:30"
+        },
+        {
+          "day": 3,
+          "open": "11:00",
+          "close": "24:30"
+        },
+        {
+          "day": 4,
+          "open": "11:00",
+          "close": "24:30"
+        },
+        {
+          "day": 5,
+          "open": "11:00",
+          "close": "25:30"
+        },
+        {
+          "day": 6,
+          "open": "11:00",
+          "close": "25:30"
+        }
+      ],
+      "primary": "CN_TAIWAN",
+      "tags": [
+        "CN_TAIWAN",
+        "CN_BUBBLETEA"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "台湾餐厅，提供传统菜肴和奶茶",
+      "distanceKm": 2.1,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:47:42.336Z",
+    "summary": "Mabu Generation · CN_TAIWAN(0.90) · ★4.5/5001 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJuRzyjg7U1IkRogTNupqWyl8",
+      "name": "Graceful Vegetarian Restaurant 法海素食軒",
+      "address": "4675 Steeles Ave E, Scarborough, ON M1V 0B7, Canada",
+      "lat": 43.8235606,
+      "lng": -79.3026208,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.4,
+      "ratingCount": 501,
+      "closedDays": [
+        3
+      ],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "21:00"
+        }
+      ],
+      "primary": "CN_VEG",
+      "tags": [
+        "CN_VEG",
+        "CN_DIMSUM",
+        "CN_CANTON"
+      ],
+      "soloFriendly": false,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "素食粤菜点心",
+      "distanceKm": 3.7,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:46:22.004Z",
+    "summary": "Graceful Vegetarian Restaurant 法海素食軒 · CN_VEG(0.90) · ★4.4/501 · 价位2 · 1段营业 · 周3休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJO4lRcNg1K4gRjyQ5Y0N-Lq8",
       "name": "Vegedelight Vegetarian Restaurant Markham",
       "address": "398 Ferrier St Unit 63, Markham, ON L3R 2Z5, Canada",
@@ -1847,6 +3741,82 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:07:55.994Z",
     "summary": "Vegedelight Vegetarian Restaurant Markham · CN_VEG(0.80) · ★4.6/430 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJfzHd9IPT1IkRXg-ES4L43Lw",
+      "name": "Xin Jiang Restaurant",
+      "address": "3636 Steeles Ave E Unit106, Markham, ON L3R 2Z5, Canada",
+      "lat": 43.8191912,
+      "lng": -79.33081990000001,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.4,
+      "ratingCount": 2203,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "CN_XIBEI",
+      "tags": [
+        "CN_XIBEI",
+        "CN_SKEWER",
+        "CN_NOODLE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "西北菜与烧烤特色",
+      "distanceKm": 3.9,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:27.179Z",
+    "summary": "Xin Jiang Restaurant · CN_XIBEI(0.90) · ★4.4/2203 · 价位2 · 1段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJx_EImobT1IkR60yNXRdufvM",
+      "name": "马记牛羊馆 Whole Sheep Feast Restaurant",
+      "address": "3636 Steeles Ave E #116, Markham, ON L3R 1K9, Canada",
+      "lat": 43.81942,
+      "lng": -79.3306537,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 3.7,
+      "ratingCount": 340,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "CN_XIBEI",
+      "tags": [
+        "CN_XIBEI",
+        "CN_SKEWER",
+        "CN_HOTPOT"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "西北菜为主，含烤串和火锅",
+      "distanceKm": 3.9,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:46.655Z",
+    "summary": "马记牛羊馆 Whole Sheep Feast Restaurant · CN_XIBEI(0.80) · ★3.7/340 · 价位2 · 1段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -1916,6 +3886,42 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:00:37.422Z",
     "summary": "山野炊青 Qing Asian Fusion Bistro ( 云贵川菜系) · CN_YUNNAN(0.80) · ★4.2/231 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJZbukWQDT1IkRM3KXNk59t3Y",
+      "name": "蒙自源过桥米线 Meetrice Noodle (Markham)",
+      "address": "20 Gibson Dr, Markham, ON L3R 4N5, Canada",
+      "lat": 43.8244822,
+      "lng": -79.32660489999999,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.3,
+      "ratingCount": 197,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": null,
+          "open": "11:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "CN_YUNNAN",
+      "tags": [
+        "CN_YUNNAN",
+        "CN_NOODLE"
+      ],
+      "soloFriendly": true,
+      "slotLock": [],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.8,
+      "reason": "蒙自源过桥米线，云南特色",
+      "distanceKm": 3.3,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:50.849Z",
+    "summary": "蒙自源过桥米线 Meetrice Noodle (Markham) · CN_YUNNAN(0.80) · ★4.3/197 · 价位2 · 1段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -2027,6 +4033,111 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
   },
   {
     "restaurant": {
+      "placeId": "ChIJh5_58r_U1IkRDbXuFBKjVdQ",
+      "name": "Dragon Legend",
+      "address": "25 Lanark Rd, Markham, ON L3R 2N8, Canada",
+      "lat": 43.845038200000005,
+      "lng": -79.3584221,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.1,
+      "ratingCount": 8119,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:30",
+          "close": "15:30"
+        },
+        {
+          "day": 0,
+          "open": "16:30",
+          "close": "21:30"
+        },
+        {
+          "day": 1,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 1,
+          "open": "17:00",
+          "close": "21:30"
+        },
+        {
+          "day": 2,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 2,
+          "open": "17:00",
+          "close": "21:30"
+        },
+        {
+          "day": 3,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 3,
+          "open": "17:00",
+          "close": "21:30"
+        },
+        {
+          "day": 4,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 4,
+          "open": "17:00",
+          "close": "21:30"
+        },
+        {
+          "day": 5,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 5,
+          "open": "17:00",
+          "close": "22:00"
+        },
+        {
+          "day": 6,
+          "open": "11:30",
+          "close": "15:30"
+        },
+        {
+          "day": 6,
+          "open": "16:30",
+          "close": "22:00"
+        }
+      ],
+      "primary": "WS_BUFFET",
+      "tags": [
+        "WS_BUFFET",
+        "AS_SUSHI",
+        "CN_CANTON"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 0.7,
+      "confidence": 0.9,
+      "reason": "泛亚自助餐，含寿司和粤菜",
+      "distanceKm": 3,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:48:18.927Z",
+    "summary": "Dragon Legend · WS_BUFFET(0.90) · ★4.1/8119 · 价位2 · 14段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
       "placeId": "ChIJs6be82TX1IkRDLk290HRzGQ",
       "name": "Gyu Gyu Hot Pot & Japanese Grill | Buffet",
       "address": "39 Main Street Markham N Unit 2, Markham, ON L3P 1X3, Canada",
@@ -2094,6 +4205,111 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:06:12.541Z",
     "summary": "Gyu Gyu Hot Pot & Japanese Grill | Buffet · WS_BUFFET(0.90) · ★4.5/592 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJM9BWlp7U1IkRyZkN7z_GJQs",
+      "name": "Mandarin Restaurant",
+      "address": "7660 Woodbine Ave, Markham, ON L3R 2N2, Canada",
+      "lat": 43.829716999999995,
+      "lng": -79.3535907,
+      "dineIn": true,
+      "priceLevel": 2,
+      "rating": 4.6,
+      "ratingCount": 9879,
+      "closedDays": [],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "11:30",
+          "close": "15:30"
+        },
+        {
+          "day": 0,
+          "open": "16:30",
+          "close": "21:00"
+        },
+        {
+          "day": 1,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 1,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 2,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 2,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 3,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 3,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 4,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 4,
+          "open": "17:00",
+          "close": "21:00"
+        },
+        {
+          "day": 5,
+          "open": "11:30",
+          "close": "15:00"
+        },
+        {
+          "day": 5,
+          "open": "17:00",
+          "close": "22:00"
+        },
+        {
+          "day": 6,
+          "open": "11:30",
+          "close": "15:30"
+        },
+        {
+          "day": 6,
+          "open": "16:30",
+          "close": "22:00"
+        }
+      ],
+      "primary": "WS_BUFFET",
+      "tags": [
+        "WS_BUFFET",
+        "CN_AMERICANIZED",
+        "AS_SUSHI"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "lunch",
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 0.8,
+      "confidence": 0.9,
+      "reason": "自助餐为主，含美式中餐和寿司",
+      "distanceKm": 3.6,
+      "bucket": "NEAR"
+    },
+    "fetchedAt": "2026-10-13T00:45:41.736Z",
+    "summary": "Mandarin Restaurant · WS_BUFFET(0.90) · ★4.6/9879 · 价位2 · 14段营业 · 无固定休 · 有堂食"
   },
   {
     "restaurant": {
@@ -2424,6 +4640,71 @@ export const IMPORTED_CATALOG: CatalogEntry[] = [
     },
     "fetchedAt": "2026-09-26T05:03:37.351Z",
     "summary": "Main Street Greek · WS_GREEK(0.90) · ★4.4/1066 · 价位2 · 7段营业 · 无固定休 · 有堂食"
+  },
+  {
+    "restaurant": {
+      "placeId": "ChIJ1fz767wsK4gRnk8U-9TQfL4",
+      "name": "Santorini Estiatorio",
+      "address": "288 John St., Markham, ON L3T 6M8, Canada",
+      "lat": 43.819938,
+      "lng": -79.3990134,
+      "dineIn": true,
+      "priceLevel": null,
+      "rating": 4.5,
+      "ratingCount": 2484,
+      "closedDays": [
+        1
+      ],
+      "serviceWindows": [
+        {
+          "day": 0,
+          "open": "16:00",
+          "close": "22:00"
+        },
+        {
+          "day": 2,
+          "open": "12:00",
+          "close": "22:00"
+        },
+        {
+          "day": 3,
+          "open": "12:00",
+          "close": "22:00"
+        },
+        {
+          "day": 4,
+          "open": "12:00",
+          "close": "22:00"
+        },
+        {
+          "day": 5,
+          "open": "12:00",
+          "close": "23:00"
+        },
+        {
+          "day": 6,
+          "open": "12:00",
+          "close": "23:00"
+        }
+      ],
+      "primary": "WS_GREEK",
+      "tags": [
+        "WS_GREEK",
+        "WS_STEAK"
+      ],
+      "soloFriendly": false,
+      "slotLock": [
+        "dinner"
+      ],
+      "isMainMeal": true,
+      "priorBias": 1,
+      "confidence": 0.9,
+      "reason": "高端希腊餐厅，适合晚餐",
+      "distanceKm": 7.2,
+      "bucket": "MID"
+    },
+    "fetchedAt": "2026-10-13T00:47:49.419Z",
+    "summary": "Santorini Estiatorio · WS_GREEK(0.90) · ★4.5/2484 · 价位未知 · 6段营业 · 周1休 · 有堂食"
   },
   {
     "restaurant": {

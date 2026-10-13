@@ -10,7 +10,9 @@
 import { writeFileSync } from 'node:fs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
-const PER_QUERY = 2;          // 每个搜索词取前 N 家
+// 每个搜索词取前 N 家。按菜系搜时取 2；按**店名**搜（外部线索清单）时设 PER_QUERY=1，
+// 第二条结果通常是附近另一家不相干的店
+const PER_QUERY = Number(process.env.PER_QUERY ?? 2);
 const DELAY_MS = 350;         // 对上游客气一点
 
 /**
@@ -85,7 +87,7 @@ for (const q of RUN) {
       if (!r.isMainMeal) { console.log(`  · 跳过非正餐 ${r.name}`); continue; }
       byId.set(r.placeId, { restaurant: r, fetchedAt: preview.fetchedAt, summary: preview.summary });
       log.previewed += 1;
-      console.log(`  ✓ ${r.name} → ${r.primary} (${r.confidence})`);
+      console.log(`  ✓ ${r.name} → ${r.primary} (${r.confidence})  ← 查询「${q}」`);
     } catch (err) {
       log.failed += 1;
       console.log(`  ✗ ${c.name} —— ${err.message}`);

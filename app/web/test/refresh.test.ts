@@ -193,8 +193,20 @@ describe('过期判定', () => {
       expect(isStalePlace(r.placeId, new Date('2020-01-01T00:00:00.000Z'))).toBe(true);
       expect(isStalePlace(r.placeId, T0)).toBe(true);
     }
-    // T0 取在目录生成 30 天之后，所以此刻整个目录都过期
-    for (const r of staticCatalog()) expect(isStalePlace(r.placeId, T0)).toBe(true);
+    // 目录是分批抓的（2026-09-26 一批、2026-10-12 一批），所以不能假设 T0 时「整个目录都过期」：
+    // 抓取超过 30 天的必须算过期，30 天内的必须不算 —— 两个方向都钉住
+    const DAY = 86_400_000;
+    let old = 0;
+    let fresh = 0;
+    for (const r of staticCatalog()) {
+      const at = fetchedAtOf(r.placeId);
+      if (at === null) continue;
+      const ageDays = (T0.getTime() - new Date(at).getTime()) / DAY;
+      if (ageDays > 30) { old += 1; expect(isStalePlace(r.placeId, T0)).toBe(true); }
+      else { fresh += 1; expect(isStalePlace(r.placeId, T0)).toBe(false); }
+    }
+    expect(old).toBeGreaterThan(0);
+    expect(fresh).toBeGreaterThan(0);
   });
 
   it('静态目录用生成时间判过期：30 天内不刷，超过才刷', () => {
