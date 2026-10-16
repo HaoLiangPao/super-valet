@@ -37,6 +37,19 @@ async function select(query) {
   return r.json();
 }
 
+// 项目状态放最前面：免费档闲置 7 天会被自动暂停（INACTIVE），
+// 那时控制面接口照常返回，只有数据库查询报 5xx，很容易误判成「代码坏了」
+const proj = await fetch(api, { headers });
+if (proj.ok) {
+  const p = await proj.json();
+  console.log(`project status     = ${p.status}`);
+  if (p.status !== 'ACTIVE_HEALTHY') {
+    console.log('  ⚠️ 项目不是 ACTIVE_HEALTHY：数据库不可用，登录与云端数据都会失败');
+  }
+} else {
+  console.log(`project status     = HTTP ${proj.status}`);
+}
+
 const auth = await fetch(`${api}/config/auth`, { headers });
 if (!auth.ok) {
   console.error(`✗ auth config HTTP ${auth.status}（access token 可能已过期）`);
