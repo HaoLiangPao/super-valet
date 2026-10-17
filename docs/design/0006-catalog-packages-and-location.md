@@ -4,7 +4,7 @@ title: 餐厅目录、预设套餐、GPS 半径与池子管理
 status: implemented
 author: claude-opus-5
 created: 2026-09-26
-updated: 2026-10-12
+updated: 2026-10-16
 superseded_by:
 related: [ADR-0008, design/0002, design/0005, research/0001]
 tags: [pool, packages, geo, catalog]
@@ -130,8 +130,9 @@ type LocationSource =
 | 5 | **推荐理由要具体**：哪道菜、几个人提到、正面还是负面 | 「泰式料理」「甜品」这种招牌菜等于没写 |
 | 6 | **说明来源是什么**，与实际来源一致 | 这份被当成小红书数据交给 Hao，实际一条小红书都没有（文件第一段自己写明了） |
 
-关于小红书作为中文社媒的默认来源，见 OPEN-QUESTIONS Q18 —— 那是一个尚未拍板的问题，
-与本文的 Non-goals、design/0005 的 Non-goals 冲突。
+**来源（Hao 2026-10-16 裁决）**：中文社媒默认用小红书，由人读笔记后写成我们自己的摘要，
+附笔记链接与日期；不爬取、不存原文与图片。详见 design/0005 §6。
+这也意味着第 5 条的「几个人提到」要写清楚是几篇笔记。
 
 ## 5. 备选方案 / Alternatives considered
 
@@ -165,3 +166,4 @@ Unit C（前端）：池子管理、套餐浏览、位置与半径设置界面�
 | 2026-09-26 | 初稿并开工（Round 5） | claude-opus-5 |
 | 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |
 | 2026-10-12 | 新增 §4.6：外部线索清单的交付要求（首次导入市场部清单后的教训）；新增「粤味与茶餐厅」套餐 | claude-opus-5-5 |
+| 2026-10-16 | §4.6 来源一段改为 Hao 的裁决（小红书人工整理，不爬取） | claude-opus-5-5 |

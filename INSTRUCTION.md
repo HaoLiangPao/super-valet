@@ -174,6 +174,7 @@ UI 实现派 Sonnet；架构与数据层派 Opus；自己只做判断、spec 和
 | `eslint-plugin-react-hooks` v7 | 启用了 React Compiler 规则：effect 里直接 `setState`、helper 里调 `Date.now()` 都会判 **error** 挂 build | 沿用 `src/app/page.tsx` 里的规避写法（mount effect 内 `Promise.resolve().then()` 推迟 setState） |
 | `.fx-*` 动效的 `forwards` 填充 | 动画 keyframes 里的 `opacity` 会永久覆盖同元素的行内 `opacity` | 进场动画和状态样式分挂到**不同元素**（外层动画、内层样式） |
 | 动效元素做点击目标 | `fx-wobble` 挂在按钮上导致 Playwright「element is not stable」点不中 | 动效挂装饰层，按钮命中区保持静止 |
+| Supabase 免费档自动暂停 | 闲置 7 天项目变 `INACTIVE`：网站照常 200、游客模式照常能用，**只有登录和云端数据挂**，很像代码出了问题（2026-10-15 发生过） | 先跑 `node scripts/prod-status.mjs` 看第一行；`/api/keepalive` 每日保活已上线，若仍被暂停先查 Vercel 的 cron 面板 |
 | Supabase 新签发 JWT | 首次拉数据偶发 401 `JWT issued at future`（时钟偏差） | 已有退避重试；生产仍偶发，属待修跟进项 |
 | Next.js 16 | 与模型训练数据可能有差异 | 派活时提醒读 `app/web/AGENTS.md` 指向的 `node_modules/next/dist/docs/` |
 | 种子数据 `isOpenAt` | `day: null` 的跨零点窗口（如 `26:00`）凌晨误判为打烊 | 已修；改营业时间逻辑时保留 `test/engine.test.ts` 里的凌晨用例 |

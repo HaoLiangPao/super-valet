@@ -4,7 +4,7 @@ title: EXPLORE 页：按店名或粘贴笔记导入餐厅
 status: implemented
 author: claude-opus-5
 created: 2026-09-20
-updated: 2026-09-30
+updated: 2026-10-16
 superseded_by:
 related: [design/0001, design/0002, ADR-0006, ADR-0007, research/0001]
 tags: [explore, places, llm, data-pipeline]
@@ -168,6 +168,15 @@ provider、结果数、结果状态、一句备注），按身份存：登录走
 - **Open:** 导入的店要不要给 `base_weight` 加成？design/0001 §5 主张「愿意粘贴笔记 = 真想去」。
   本轮先不加，等试玩反馈（记入 OPEN-QUESTIONS）。
 
+- **已定（Hao 2026-10-16，台账 Q18）：小红书是中文社媒信号的默认来源，但只人工整理，不爬取。**
+  本文 Non-goals 里「不爬小红书」**维持不变**。小红书的数据只从两条路进来：
+  1. **用户自己粘贴笔记**（本文 §4 已上线的入口）。
+  2. **市场部人工整理**：人读笔记，写成我们自己的话，按 design/0006 §4.6 的格式交付 ——
+     推荐了哪道菜、几篇笔记提到、口碑好坏、笔记链接与日期。
+     **只存我们的摘要和链接，不存笔记原文与图片。**
+  不做自动爬取的理由：违反小红书用户协议；反爬很凶，爬虫会是一个持续坏掉的东西；
+  一个要拿给 pilot 用户、将来可能拿去融资的产品不该建在这上面。
+
 ## 7. 落地计划 / Rollout
 
 Unit A（CTO）：ADR-0007 + 服务端路由 + provider 双实现 + schema 迁移 + 存储层扩展 + 测试。
@@ -182,3 +191,4 @@ Unit B（前端）：EXPLORE 页 UI（Organic 风格）+ 第四个 Tab + 预览�
 | 2026-09-20 | 初稿并开工（Round 4 Unit 0） | claude-opus-5 |
 | 2026-09-25 | LLM 改用 DeepSeek（经 OpenRouter）；新增 §4.7 抓取台账、§4.8 30 天 TTL；补记相关性校验与营业时间未知两个实测发现 | claude-opus-5 |
 | 2026-09-30 | 状态卫生：已上线，`accepted` → `implemented` | claude-opus-5-5 |
+| 2026-10-16 | §6 记录 Hao 裁决（台账 Q18）：小红书为默认中文社媒来源，只走用户粘贴与人工整理，不爬取 | claude-opus-5-5 |

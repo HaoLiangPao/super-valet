@@ -4,7 +4,7 @@ title: 技术栈：Next.js + Supabase + Vercel（移动网页形态）
 status: accepted
 author: HaoLiangPao
 created: 2026-09-17
-updated: 2026-10-01
+updated: 2026-10-16
 superseded_by:
 related: [design/0001, design/0002, research/0001, ADR-0006, ADR-0007, ADR-0008]
 tags: [infra, stack]
@@ -84,6 +84,10 @@ Google Places API (New)；产品形态为**普通移动网页**，不做 PWA 安
   `sim.py` 做离线模拟来补。
 - 没有服务端定时任务：用户一个月不打开应用，他的数据就一个月不刷新。
   目前可接受（不打开就不需要新数据），要做「到点提醒」时这条会先撞墙。
+- **2026-10-16 补：有了第一个 Vercel Cron，但只做保活。** Supabase 免费档闲置 7 天会自动暂停项目，
+  2026-10-15 真的发生了（生产登录全部失败）。`app/web/vercel.json` 每天调一次 `/api/keepalive`，
+  对数据库做一次 `limit=1` 的只读 select，不碰业务数据。Hao 2026-10-16 批准。
+  服务端定时刷新另见 ADR-0010。
 
 **什么情况下应该重新考虑这个决定**
 - 用户规模化（RLS/成本模型改变）。
@@ -97,3 +101,4 @@ Google Places API (New)；产品形态为**普通移动网页**，不做 PWA 安
 | 2026-09-17 | 初稿：Next.js 15 + Supabase + Drizzle + Vercel（PWA 形态） | HaoLiangPao |
 | 2026-09-30 | 按实际技术栈修订（六处差异逐条列出）；三个争议项随 Q3/Q4 裁决落定；状态保持 `proposed` 等 Hao 复核 | claude-opus-5-5 |
 | 2026-10-01 | Hao 复核修订稿：`proposed` → `accepted` | claude-opus-5-5 |
+| 2026-10-16 | 后果补一条：新增每日保活 Cron（Supabase 免费档闲置 7 天会自动暂停，2026-10-15 发生过） | claude-opus-5-5 |

@@ -1,10 +1,10 @@
 ---
 id: 0010
 title: 餐厅事实归服务端，按店全局刷新一次；用户只负责发现与报告关门
-status: proposed
+status: accepted
 author: claude-opus-5-5
 created: 2026-10-01
-updated: 2026-10-01
+updated: 2026-10-16
 superseded_by:
 related: [ADR-0007, ADR-0008, ADR-0009, design/0009]
 tags: [refresh, cost, data-ownership]
@@ -12,8 +12,8 @@ tags: [refresh, cost, data-ownership]
 
 # ADR-0010: 餐厅事实归服务端，按店全局刷新一次；用户只负责发现与报告关门
 
-> 状态说明：Hao 2026-10-01 在对话中同意了下面的四点（台账 Q16）。按授权规则，
-> 创始人不自行把决策转 `accepted`，等 Hao 复核本文后转。
+> status: **accepted** —— Hao 2026-10-01 在对话中同意了四点，2026-10-16 复核本文后通过，
+> 含创始人补的细则（用户报告关门而 Places 说营业中时，只引导这个用户归档，不改共享表）。
 
 ## 背景 / Context
 
@@ -108,3 +108,4 @@ Places (New) 不返回「最后修改时间」，也没有 etag，没有便宜�
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-10-01 | 初稿：记录 Hao 同意的四点（台账 Q16） | claude-opus-5-5 |
+| 2026-10-16 | Hao 复核通过：`proposed` → `accepted`，含第 4 点的创始人细则 | claude-opus-5-5 |
