@@ -12,7 +12,7 @@
 >
 > 立场栏：🅗 = Hao 的倾向，🅕 = 创始人的倾向。
 
-最近一次全量核对：**2026-09-30**（对照代码与线上状态逐条核过）；2026-10-01 增补 Q16、Q17，关闭 Q11、Q16①、Q17；2026-10-12 增补 Q18、Q19，关闭 F5；2026-10-16 关闭 Q16、Q18。
+最近一次全量核对：**2026-09-30**（对照代码与线上状态逐条核过）；2026-10-01 增补 Q16、Q17，关闭 Q11、Q16①、Q17；2026-10-12 增补 Q18、Q19，关闭 F5；2026-10-16 关闭 Q16、Q18，以及 Q15、Q19（转 F8）。
 
 ---
 
@@ -56,25 +56,6 @@ rolls / feedbacks，而池子选择（selection）、位置偏好、导入的餐
 - 🅕 不凭感觉调。等 pilot 用户进来后用多账号做对照，看数据再定。
 - 优先级：低 —— 被 pilot 启动卡着。
 
-### Q15 本地分支 `feat/explore-import` 删不删
-
-已完全合入 `claude-version`（停在 `8fa554d`），留着只是噪音。
-- 🅕 删（`git branch -d`，已合入的分支删了可以从 commit 恢复）。等 Hao 点头。
-
-### Q19 分类器会把店标错，而且标错时照样给高置信度
-
-2026-10-12 导入 45 家时人工抽查发现：
-- **CN_CANTON 被滥用**：Big Beef Bowl（兰州拉面）、QJD 北京烤鸭、杨铭宇黄焖鸡都被标成粤菜，置信度 0.9；
-- **亚洲自助被标成西式自助**（WS_BUFFET）：Mandarin、Dragon Legend、Gyu Gyu，后者早在上一批就混进了「高性价比西餐」包。
-
-套餐是按分类挑的，所以分类错会直接让套餐名不副实。这次的止血是改套餐规则：
-西餐包不收 WS_BUFFET，粤菜包加了排除名单（`scripts/build-packages.mjs`）。
-**根子在分类器**：提示词里给每个菜系的定义与反例（design/0002 的菜系表），并且不要让模型自己报置信度
-—— 它报的 0.9 不代表任何东西。
-- 🅕 修分类器之前先做一个小的对照集：从目录里人工标 30 家，量一下现在的准确率，
-  改完再量。没有这个数，「改好了」只是感觉。
-- 优先级：中 —— 影响套餐和摇一摇里菜系层的学习，但不影响能不能摇到店。
-
 ---
 
 ## B. 等 Hao 动手
@@ -110,11 +91,12 @@ Management API `PATCH /v1/projects/<ref>/config/auth` 传 `{"disable_signup": tr
 
 | # | 事 | 备注 |
 | - | -- | ---- |
-| F1 | **S6 归档列表界面** | 路线图下一步（[design/0008](design/0008-refresh-archive-and-stats.md) §3）。ADR-0009 定了「永不自动归档」，归档的店必须有地方看得到、能恢复。连带 Q9、Q12、Q13 |
+| F1 | **S6 归档列表界面**（Hao 2026-10-16 定为下一轮） | 路线图下一步（[design/0008](design/0008-refresh-archive-and-stats.md) §3）。ADR-0009 定了「永不自动归档」，归档的店必须有地方看得到、能恢复。连带 Q9、Q12、Q13 |
 | F2 | S7 行为统计页 | S6 之后 |
 | F3 | 登录后首拉偶发 401 `JWT issued at future` | 重试内自愈、用户无感，但生产也复现过。方案：登录成功后首拉前加 300ms 缓冲，或提高重试预算（research/0004） |
 | F4 | 新建 Profile 空名字没有行内提示 | 小 UX（research/0004） |
 | F6 | 删掉没用的依赖 `@anthropic-ai/sdk` | `app/web/package.json` 里还装着，但 `src/` 零引用 —— LLM 早改成直接 fetch OpenRouter 了（ADR-0007） |
+| F8 | 分类器准确率（原 Q19） | Hao 2026-10-16 定：先从目录人工标 30 家做对照集，量出现在的准确率，再改提示词（给每个菜系定义与反例，不让模型自报置信度），改完再量。已知错例：CN_CANTON 被滥用（兰州拉面、北京烤鸭、黄焖鸡），亚洲自助被标成 WS_BUFFET。止血在 `scripts/build-packages.mjs` |
 | F7 | 实现 [ADR-0010](decisions/0010-server-owned-place-facts.md) | S6 之后、pilot 扩大之前；含一次改写已有数据的迁移，上线前要 Hao 当次批准。Q13 并入其中 |
 
 ---
@@ -135,6 +117,8 @@ Management API `PATCH /v1/projects/<ref>/config/auth` 传 `{"disable_signup": tr
 | Q16 | 餐厅事实归服务端、按店全局刷新，含「一人报告关门不改共享表」细则 | [ADR-0010](decisions/0010-server-owned-place-facts.md) 转 `accepted`；实现见 F7 | 2026-10-16 |
 | Q18 | 小红书为默认中文社媒来源，只走用户粘贴与人工整理，不爬取 | [design/0005](design/0005-explore-import.md) §6、[design/0006](design/0006-catalog-packages-and-location.md) §4.6 | 2026-10-16 |
 | — | 生产登录失败：Supabase 免费档闲置 7 天被自动暂停 | 已恢复（数据完整）；每日保活 `/api/keepalive` 上线，见 [ADR-0003](decisions/0003-tech-stack.md) 后果、INSTRUCTION.md §7 | 2026-10-16 |
+| Q15 | 删除已合入的本地分支 `feat/explore-import` | 已删（提交仍在 `claude-version` 里） | 2026-10-16 |
+| Q19 | 分类器标错：先做 30 家对照集量准确率再修 | 转为创始人待办 F8 | 2026-10-16 |
 | A1 | ADR-0003 修订稿复核通过 | [ADR-0003](decisions/0003-tech-stack.md) 转 `accepted` | 2026-10-01 |
 | — | 店名用哪种语言：Google 有中文名就用，没有就保留英文 | 现行做法本来就是这样，实测结果见 [design/0007](design/0007-i18n.md) 裁决记录 | 2026-10-01 |
 | Q11 | 发现新店半径封顶 15 km，Text Search 带坐标、Details 之前按距离过滤 | [design/0009](design/0009-refresh-radar-and-travel-time.md) §6.1 | 2026-10-01 |
