@@ -14,6 +14,12 @@ import { GET as keepalive } from '../src/app/api/keepalive/route';
  */
 
 describe('保活接线', () => {
+  it('路由调用的函数确实在迁移里定义并授权给了匿名角色', () => {
+    const sql = readFileSync(resolve(__dirname, '../../../supabase/migrations/0006_keepalive.sql'), 'utf8');
+    expect(sql).toMatch(/create or replace function public\.keepalive\(\)/);
+    expect(sql).toMatch(/grant execute on function public\.keepalive\(\) to anon/);
+  });
+
   it('vercel.json 的 cron 指向一个真实存在的路由', () => {
     const cfg = JSON.parse(readFileSync(resolve(__dirname, '../vercel.json'), 'utf8'));
     const paths: string[] = cfg.crons.map((c: { path: string }) => c.path);
@@ -45,16 +51,20 @@ describe('保活行为', () => {
     vi.unstubAllGlobals();
   });
 
-  it('只做一次 limit=1 的只读 select', async () => {
-    const fetchMock = vi.fn(async () => new Response('[]', { status: 200 }));
+  it('只调一次 keepalive() 函数，只带 apikey 头', async () => {
+    const fetchMock = vi.fn(async () => new Response('1', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const res = await keepalive(req());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit | undefined];
-    expect(url).toBe('https://example.supabase.co/rest/v1/restaurants?select=*&limit=1');
-    expect(init?.method ?? 'GET').toBe('GET');
+    expect(url).toBe('https://example.supabase.co/rest/v1/rpc/keepalive');
+    expect(init?.method).toBe('POST');
+    const headers = init?.headers as Record<string, string>;
+    expect(headers.apikey).toBe('pk_test');
+    // 新版 publishable key 不是 JWT：塞进 Bearer 会被拒（实测）
+    expect(headers.Authorization).toBeUndefined();
   });
 
   it('项目暂停（上游 5xx）时返回 503，让 cron 面板显示失败', async () => {
@@ -67,7 +77,7 @@ describe('保活行为', () => {
 
   it('设了 CRON_SECRET 就拒绝不带对的 Bearer 的请求', async () => {
     vi.stubEnv('CRON_SECRET', 's3cret');
-    const fetchMock = vi.fn(async () => new Response('[]', { status: 200 }));
+    const fetchMock = vi.fn(async () => new Response('1', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     expect((await keepalive(req())).status).toBe(401);
     expect((await keepalive(req('Bearer wrong'))).status).toBe(401);
