@@ -1,10 +1,10 @@
 ---
 id: 0011
 title: 用「GitHub CI + Vercel 预览 + 预构建生产、Hao 批准后切换」做部署流水线
-status: proposed
+status: accepted
 author: claude-opus-5-5
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-17
 superseded_by:
 related: [ADR-0003, ADR-0007]
 tags: [infra, ci, deploy]
@@ -12,7 +12,10 @@ tags: [infra, ci, deploy]
 
 # ADR-0011: 用「GitHub CI + Vercel 预览 + 预构建生产、Hao 批准后切换」做部署流水线
 
-> status: **proposed** —— 改的是部署形态与 Vercel 项目设置，等 Hao 裁决（台账 Q20）。
+> status: **accepted** —— Hao 2026-10-16 裁决，有一处与原方案不同：
+> **生产分支保持 `main`，不改名。** Hao 把 `main` 留给最终版，现阶段谁都不推 `main`
+> （两队各在自己的分支上）。所以「推 `main` 让生产倒退」的风险由约定挡住，而不是由设置挡住；
+> 将来 Hao 把最终版合进 `main`、自动上线，正是他要的。下面决策第 2 条因此不执行。
 
 ## 背景 / Context
 
@@ -66,8 +69,8 @@ Hao 2026-10-16 在 Vercel 面板上看到大量失败的部署。用 CLI 逐个�
 
 1. **Vercel Root Directory 改为 `app/web`**（项目设置，Hao 的 Vercel 账号操作或授权创始人用 CLI/API 改）。
    改完后 CLI 部署要从**仓库根目录**发起，`.vercel` 链接随之挪到根目录。
-2. **生产分支改成一个没人推的分支名**（如 `production`），`main` 推送从此只产生预览，
-   不再碰生产。生产只走 ④a → ④b。
+2. ~~**生产分支改成一个没人推的分支名**~~ —— **不执行**（Hao 裁决：`main` 留给最终版、现阶段不推）。
+   日常生产只走 ④a → ④b。
 3. **新增 `.github/workflows/ci.yml`**：推 `claude-version` 和开 PR 时跑
    `npm ci → npm run lint → npm test → npm run build`（在 `app/web`，Node 22）。
    `docs.yml` 的触发条件同时加上 `claude-version`。
@@ -151,3 +154,4 @@ jobs:
 | 日期 | 改了什么 | 谁 |
 | ---- | -------- | -- |
 | 2026-10-16 | 初稿：9 次失败部署的病因与四段式流水线 | claude-opus-5-5 |
+| 2026-10-17 | Hao 裁决转 `accepted`；生产分支保持 `main`（第 2 条不执行）。已实施：Root Directory → `app/web`、Node 22.x（项目设置 + `engines`）、`ci.yml`、`docs.yml` 加 `claude-version`、CLI 链接挪到根目录、ship-check 关卡四改写 | claude-opus-5-5 |

@@ -74,8 +74,9 @@ Hao 授权创始人按「公司」方式调度子代理，组织规则自定、�
 | 读写文件 | 只在本仓库目录内，不读写目录外文件 |
 | `git commit` | **自主**，且应该 —— 每个工作单元一个 commit |
 | `git push` | **每次都要 Hao 当次批准**；只推 `claude-version`，`main` 与强推已 deny |
-| Vercel **预览**部署 | **自主**（`npx vercel deploy --yes`，不带 `--prod`） |
-| Vercel **生产**部署 | **每次都要 Hao 当次批准** |
+| Vercel **预览**部署 | **自主**（`npx vercel deploy --yes`，从仓库根目录） |
+| Vercel **预构建生产**（`--prod --skip-domain`，不切流量） | **自主**（ADR-0011） |
+| Vercel **生产切换**（`vercel promote`）与 `main` 推送 | **每次都要 Hao 当次批准**；`main` 归 Hao，留给最终版，创始人不推 |
 | 线上数据库迁移 | 只增不减的（加表、加列、加策略、加视图）**自主**；删表、删列、改写或删除已有数据的，**每次都要 Hao 当次批准** |
 | 线上只读核对 | **自主**，走 `node scripts/prod-status.mjs` |
 

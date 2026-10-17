@@ -53,24 +53,36 @@ commit 自主；`git push` 的权限见 `CLAUDE.md` §授权状态。
 - console 卫生
 - 用完 `browser_close` 释放浏览器，测完停掉 dev server
 
-## 关卡四：部署（先预览，生产另批）
+## 关卡四：部署（ADR-0011：预览 → 预构建生产 → Hao 批准后切换）
 
 谁能批什么见 `CLAUDE.md` §授权状态，这里只写怎么敲。
+⚠️ **CLI 一律从仓库根目录发起**（Vercel Root Directory 是 `app/web`，在 `app/web` 里跑会找错路径）。
+
+**1. 推送之后先看 GitHub CI 是绿的**（`ci` 与 `docs` 两个 workflow）。推 `claude-version`
+时 Vercel 也会自动出一个预览；手动出预览用：
 
 ```bash
-cd app/web && npx vercel deploy --yes          # 预览：把输出的 URL 交给 Hao
+npx vercel deploy --yes                         # 预览，URL 给 Hao
+npx vercel curl /api/keepalive --deployment <预览URL>   # 受保护的预览用 vercel curl 冒烟
 ```
 
-Hao 看过预览、批准上生产之后才跑：
+**2. 预构建生产**：用生产环境变量构建，但**不切流量**，得到一个待发布 URL：
 
 ```bash
-cd app/web && npx vercel deploy --prod --yes
+npx vercel deploy --prod --skip-domain --yes
+```
+
+**3. Hao 看过待发布 URL、批准之后才切换**（秒级，不重新构建）：
+
+```bash
+npx vercel promote <待发布URL> --yes
 curl -s -o /dev/null -w "%{http_code}\n" https://supper-valet.vercel.app
 ```
 
-- 预览链接（`*-haoliangpaos-projects.vercel.app`）受 Vercel Authentication 保护，
-  未登录访问返回 302，属正常 —— Hao 登录自己的 Vercel 账号即可打开。
-- 对外只发**主域** `supper-valet.vercel.app`。
+出问题就回滚（秒级）：`npx vercel rollback`。
+
+- `main` 推送会**自动部署生产** —— `main` 归 Hao，留给最终版，创始人从不推 `main`。
+- 预览链接受 Vercel Authentication 保护，未登录访问返回 302，属正常。对外只发**主域** `supper-valet.vercel.app`。
 - 新增 `NEXT_PUBLIC_*` 环境变量要先配进 Vercel：
   `npx vercel env add NAME production`（值走 stdin，**不要回显**）。
 

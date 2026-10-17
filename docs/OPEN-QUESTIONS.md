@@ -56,21 +56,6 @@ rolls / feedbacks，而池子选择（selection）、位置偏好、导入的餐
 - 🅕 不凭感觉调。等 pilot 用户进来后用多账号做对照，看数据再定。
 - 优先级：低 —— 被 pilot 启动卡着。
 
-### Q20 部署流水线：ADR-0011 待裁决
-
-Hao 2026-10-16 在 Vercel 面板看到大量失败部署。已查清：**9 次失败全是同一个病因** ——
-Vercel 项目的 Root Directory 是仓库根目录，而应用在 `app/web`，所以 GitHub 推送触发的构建全挂
-（CLI 手动部署一直正常，线上没受影响）。顺带发现：GitHub 上没有应用层 CI；Node 版本不一致；
-**修好之后 Hao 推一次 `main` 会让生产退回几周前的版本**。
-方案见 [ADR-0011](decisions/0011-ci-cd-pipeline.md)（`proposed`）。
-- 🅕 四段式：push → GitHub CI + Vercel 预览 → 预构建生产（不切流量）→ Hao 批准后秒级切换。
-- 需要 Hao 裁决三件事：
-  1. 接受 ADR-0011；
-  2. Root Directory 改 `app/web` 是**项目级**设置，会影响这个 Vercel 项目上的所有分支 ——
-     创始人不看其他分支，只能由 Hao 判断有没有别的分支依赖根目录；
-  3. 生产分支改成一个没人推的分支名，`main` 推送从此只出预览。
-- 优先级：高 —— 每次 push 面板都报红，而且 `main` 是一颗定时炸弹。
-
 ---
 
 ## B. 等 Hao 动手
@@ -93,6 +78,8 @@ Management API `PATCH /v1/projects/<ref>/config/auth` 传 `{"disable_signup": tr
 自 2026-09-18 挂到现在。（导出的内容不全是另一回事，见 Q8。）
 
 ### H4 `main` 落后 `claude-version`（2026-10-16 时 23 个 commit）
+
+> 2026-10-17 Hao：`main` 留给最终版，现阶段不推。**推 `main` 会自动部署生产**（ADR-0011），合并前务必让它是最新的。
 
 `main` 归 Hao 掌管，合不合、什么时候合由 Hao 定。创始人不碰。
 
@@ -134,6 +121,7 @@ Management API `PATCH /v1/projects/<ref>/config/auth` 传 `{"disable_signup": tr
 | — | 生产登录失败：Supabase 免费档闲置 7 天被自动暂停 | 已恢复（数据完整）；每日保活 `/api/keepalive` 上线，见 [ADR-0003](decisions/0003-tech-stack.md) 后果、INSTRUCTION.md §7 | 2026-10-16 |
 | Q15 | 删除已合入的本地分支 `feat/explore-import` | 已删（提交仍在 `claude-version` 里） | 2026-10-16 |
 | Q19 | 分类器标错：先做 30 家对照集量准确率再修 | 转为创始人待办 F8 | 2026-10-16 |
+| Q20 | 部署流水线：GitHub CI + Vercel 预览 + 预构建生产、Hao 批准后切换；生产分支保持 `main`（留给最终版） | [ADR-0011](decisions/0011-ci-cd-pipeline.md) | 2026-10-17 |
 | A1 | ADR-0003 修订稿复核通过 | [ADR-0003](decisions/0003-tech-stack.md) 转 `accepted` | 2026-10-01 |
 | — | 店名用哪种语言：Google 有中文名就用，没有就保留英文 | 现行做法本来就是这样，实测结果见 [design/0007](design/0007-i18n.md) 裁决记录 | 2026-10-01 |
 | Q11 | 发现新店半径封顶 15 km，Text Search 带坐标、Details 之前按距离过滤 | [design/0009](design/0009-refresh-radar-and-travel-time.md) §6.1 | 2026-10-01 |

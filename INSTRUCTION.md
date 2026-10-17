@@ -177,6 +177,8 @@ UI 实现派 Sonnet；架构与数据层派 Opus；自己只做判断、spec 和
 | Supabase 免费档自动暂停 | 闲置 7 天项目变 `INACTIVE`：网站照常 200、游客模式照常能用，**只有登录和云端数据挂**，很像代码出了问题（2026-10-15 发生过） | 先跑 `node scripts/prod-status.mjs` 看第一行；`/api/keepalive` 每日保活已上线，若仍被暂停先查 Vercel 的 cron 面板 |
 | 匿名访问 Supabase | 匿名角色对业务表**没有 grant**（select 得 401 / `42501`）；新版 publishable key（`sb_publishable_…`）不是 JWT，别塞进 `Authorization: Bearer`。新加的 SQL 函数要 `notify pgrst, 'reload schema'` 才能经 REST 调到（否则 404 `PGRST202`） | 匿名要用的东西做成专门的函数并单独授权，别给匿名开业务表；参考迁移 0006 |
 | 本机跑迁移 | `scripts/migrate.mjs` 直连 Postgres，而 `db.<ref>.supabase.co` 只有 IPv6，这台机器连不上（`ENETUNREACH`） | 改走 Management API 的 `/database/query`（2026-10-16 跑 0006 用的就是这条路） |
+| Vercel CLI 的位置 | Root Directory 是 `app/web`（ADR-0011），CLI 必须从**仓库根目录**跑；`vercel link` 会顺手拉一份 `.env.local` 到当前目录并改 `.gitignore` | `vercel link` 之后立刻检查并删掉根目录的 `.env.local`（凭证只存 `app/web/.env.local`），`.gitignore` 的改动要审 |
+| 「本机绿 ≠ CI 绿」 | 2026-10-16 之前所谓「CI」只是本机命令；GitHub 上没有应用层检查 | 推送后看 GitHub 的 `ci` workflow，不看本机 |
 | Supabase 新签发 JWT | 首次拉数据偶发 401 `JWT issued at future`（时钟偏差） | 已有退避重试；生产仍偶发，属待修跟进项 |
 | Next.js 16 | 与模型训练数据可能有差异 | 派活时提醒读 `app/web/AGENTS.md` 指向的 `node_modules/next/dist/docs/` |
 | 种子数据 `isOpenAt` | `day: null` 的跨零点窗口（如 `26:00`）凌晨误判为打烊 | 已修；改营业时间逻辑时保留 `test/engine.test.ts` 里的凌晨用例 |
